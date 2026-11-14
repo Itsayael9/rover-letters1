@@ -9,6 +9,7 @@ export default function SegmentQuestion({
   question,
   onSolved,
   onSaveAnswer,
+  variant,
 }) {
   const [picked, setPicked] = useState(null);
   const [wrongTries, setWrongTries] = useState(0);
@@ -61,8 +62,21 @@ export default function SegmentQuestion({
         ? t(question.wrongText)
         : "";
 
+  const moon = variant === "moon";
+  const keys = ["A", "B", "C"];
+  const status =
+    result === "hint"
+      ? `${t({ en: "Hmm, not that one." })} ${t(question.hint)}`
+      : followText;
+
   return (
-    <div className="kids-qcard">
+    <div className={`kids-qcard${moon ? " kids-qcard--moon" : ""}`}>
+      {moon ? (
+        <div className="s3-qchip" aria-hidden="true">
+          <span className="s3-qchip-face">◉‿◉</span>
+          <span>Surveyor 3</span>
+        </div>
+      ) : null}
       <p className="kids-qcard-prompt">{t(question.prompt)}</p>
       <div className="kids-qcard-options" role="group" aria-label="Choose an answer">
         {question.options.map((opt, i) => (
@@ -70,21 +84,27 @@ export default function SegmentQuestion({
             key={opt.id}
             type="button"
             disabled={solved && !opt.correct && picked !== opt.id}
-            className={`kids-qbtn tone-${TONES[i % TONES.length]}${
+            className={`${moon ? "s3-qopt" : `kids-qbtn tone-${TONES[i % TONES.length]}`}${
               picked === opt.id ? " is-picked" : ""
             }${solved && opt.correct ? " is-right" : ""}`}
             onClick={() => choose(opt)}
           >
+            {moon ? <span className="s3-qopt-key">{keys[i] ?? i + 1}</span> : null}
             <span>{t(opt.label)}</span>
           </button>
         ))}
       </div>
-      {result === "hint" ? (
+      {moon && status ? (
+        <p className={`s3-qstatus${result === "correct" ? " is-ok" : result === "hint" ? " is-hint" : ""}`} role="status">
+          {status}
+        </p>
+      ) : null}
+      {!moon && result === "hint" ? (
         <p className="kids-qcard-hint" role="status">
           {`${t({ en: "Hmm, not that one." })} ${t(question.hint)}`}
         </p>
       ) : null}
-      {followText ? (
+      {!moon && followText ? (
         <p className="kids-qcard-explain" role="status">
           {followText}
         </p>

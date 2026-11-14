@@ -8,7 +8,8 @@ import Intro from "@/components/Intro";
 import Captions from "@/components/Captions";
 import SiteHeader, { MapLogo } from "@/components/SiteHeader";
 import PlanetMapModal from "@/components/PlanetMapModal";
-import { useProgress } from "@/store/progress";
+import SfxToggle from "@/components/SfxToggle";
+import { useSpaceAudio } from "@/hooks/useSpaceAudio";
 
 const NARRATION = {
   en: "/audio/narration-en.mp3",
@@ -33,10 +34,22 @@ export default function Home() {
   const markerEls = useRef({});
   const finished = useRef(false);
   const narrationRef = useRef(null);
+  const spaceAudio = useSpaceAudio();
+
+  useEffect(() => {
+    const mission = new URLSearchParams(window.location.search).get("mission");
+    if (mission !== "surveyor-3") return;
+    finished.current = true;
+    setPhase("space");
+    setSelected("moon");
+    setOpen({ bodyId: "moon", equipId: "surveyor-3" });
+    setOnSurface(true);
+  }, []);
 
   const handleSelectPlanet = (id) => {
     if (id !== selected) setOpen(null);
     setSelected(id);
+    spaceAudio.playPlanetSelect();
   };
 
   const handleSurfaceChange = useCallback((isSurface) => {
@@ -49,33 +62,19 @@ export default function Home() {
     ? BODIES.find((b) => b.id === open.bodyId)?.equipment?.find((e) => e.id === open.equipId)
     : null;
 
-  const marsMachines = BODIES.find((b) => b.id === "mars")?.equipment ?? [];
-  const marsSiteVisit =
-    open?.bodyId === "mars" && marsMachines.some((machine) => machine.id === open.equipId);
-  const showKids = item?.id === "opportunity" && onSurface;
-  const { isPlanetUnlocked, ready: progressReady, completedMachines } = useProgress();
+  const bodyMachines = body?.equipment ?? [];
+  const siteVisit =
+    Boolean(open?.bodyId) &&
+    bodyMachines.some((machine) => machine.id === open?.equipId);
+  const moonSiteVisit = siteVisit && open?.bodyId === "moon";
   const [mapOpen, setMapOpen] = useState(false);
-  const [lockNote, setLockNote] = useState(false);
-  const [moonNote, setMoonNote] = useState(false);
-  const bootedProgress = useRef(false);
-  const moonWasOpen = useRef(false);
-  const moonUnlockQueued = useRef(false);
+  const showKids = Boolean(item && onSurface);
 
-  useEffect(() => {
-    if (!progressReady) return;
-    const openNow = isPlanetUnlocked("moon");
-    if (!bootedProgress.current) {
-      bootedProgress.current = true;
-      moonWasOpen.current = openNow;
-      return;
-    }
-    if (openNow && !moonWasOpen.current) moonUnlockQueued.current = true;
-    moonWasOpen.current = openNow;
-    if (moonUnlockQueued.current && !showKids) {
-      moonUnlockQueued.current = false;
-      setMoonNote(true);
-    }
-  }, [progressReady, isPlanetUnlocked, completedMachines, showKids]);
+  const openMission = (machine) => {
+    if (!body || !machine) return;
+    spaceAudio.playMarkerPing();
+    setOpen({ bodyId: body.id, equipId: machine.id });
+  };
 
   const stopNarration = () => {
     const audio = narrationRef.current;
@@ -119,6 +118,10 @@ export default function Home() {
 
   const introDone = phase === "leaving" || phase === "space";
 
+  const closeKids = () => {
+    setOpen(null);
+  };
+
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-black">
       <div className="absolute inset-0">
@@ -126,15 +129,21 @@ export default function Home() {
           selected={selected}
           onSelect={handleSelectPlanet}
           markerEls={markerEls}
-          marsSiteVisit={marsSiteVisit}
+          siteVisit={siteVisit}
           onSurfaceChange={handleSurfaceChange}
           paused={phase === "intro" || phase === "flying"}
           names={t.planets}
           rtl={lang === "ar"}
-          moonUnlocked={isPlanetUnlocked("moon")}
-          onMoonLocked={() => setLockNote(true)}
+          onPlanetHover={spaceAudio.playPlanetHover}
+          onApproachStart={spaceAudio.playWhoosh}
         />
       </div>
+
+      {introDone && (
+        <div className="absolute right-4 top-20 z-[60] md:top-4">
+          <SfxToggle />
+        </div>
+      )}
 
       {body &&
         !item &&
@@ -144,23 +153,27 @@ export default function Home() {
             ref={(el) => {
               markerEls.current[m.id] = el;
             }}
-            onClick={() => setOpen({ bodyId: body.id, equipId: m.id })}
+            onClick={() => openMission(m)}
             aria-label={m.name}
+            title={m.subtitle ?? m.name}
             className="equipment-marker group pointer-events-none absolute left-0 top-0 text-white opacity-0"
           >
-            <span className="block text-3xl font-bold leading-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.9)] group-hover:hidden">
-              X
-            </span>
-            <span className="hidden items-center gap-2 whitespace-nowrap rounded-full border border-yellow-300/50 bg-black/75 px-3 py-1.5 text-sm font-semibold shadow-lg shadow-yellow-500/20 ring-2 ring-yellow-300/40 group-hover:flex">
-              <span className="h-3 w-3 animate-pulse rounded-full bg-yellow-300" />
+            <span className="equipment-marker-pulse" aria-hidden="true" />
+            <span className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/40 bg-black/80 px-3 py-1.5 text-sm font-semibold shadow-lg ring-2 ring-white/20 transition group-hover:scale-105 group-hover:border-yellow-300 group-hover:ring-yellow-300/40 group-focus-visible:scale-105 group-focus-visible:border-yellow-300">
+              <span
+                className="h-2.5 w-2.5 animate-pulse rounded-full"
+                style={{ backgroundColor: m.color || "#fde047" }}
+              />
               {m.name}
             </span>
           </button>
         ))}
 
-      {introDone && !showKids && !item && <SiteHeader title={t.site} onMap={body ? () => setMapOpen(true) : null} />}
+      {introDone && !showKids && !item && (
+        <SiteHeader title={t.site} onMap={body ? () => setMapOpen(true) : null} />
+      )}
 
-      {introDone && body && (item || showKids) && (
+      {introDone && body && item && !showKids && (
         <button
           type="button"
           onClick={() => setMapOpen(true)}
@@ -188,7 +201,9 @@ export default function Home() {
               <p className="mt-3 text-sm text-white/70">
                 {body.id === "mars"
                   ? "Tap Opportunity on Mars to land and meet the rover."
-                  : t.tapMarker}
+                  : body.id === "moon"
+                    ? "Tap a mission pin — Surveyor 3 or Apollo 12 — to begin."
+                    : t.tapMarker}
               </p>
             )}
           </div>
@@ -207,74 +222,24 @@ export default function Home() {
           onClose={() => setMapOpen(false)}
           onPick={(machine) => {
             setMapOpen(false);
-            setOpen({ bodyId: body.id, equipId: machine.id });
+            openMission(machine);
           }}
         />
       )}
 
-      {lockNote && (
-        <div
-          className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setLockNote(false)}
-        >
-          <div
-            role="dialog"
-            aria-label="The Moon is still waiting"
-            className="w-[min(100%,22rem)] rounded-3xl bg-[#1A1A1A] px-6 py-6 text-center text-white shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <p className="text-4xl" aria-hidden="true">🌙</p>
-            <p className="mt-2 text-sm font-semibold text-[#FC3D21]">Nova</p>
-            <p className="mt-2 text-2xl font-bold">Not yet, explorer!</p>
-            <p className="mt-2 text-base leading-relaxed text-white/90">
-              The Moon is still waiting. Finish Mars with Opportunity, and then the Moon will open for you.
-            </p>
-            <button
-              type="button"
-              onClick={() => setLockNote(false)}
-              className="mt-5 rounded-full bg-[#0B3D91] px-6 py-2 text-base font-bold text-white"
-            >
-              I will!
-            </button>
-          </div>
-        </div>
-      )}
-
-      {moonNote && (
-        <div
-          className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setMoonNote(false)}
-        >
-          <div
-            role="dialog"
-            aria-label="The Moon is unlocked"
-            className="w-[min(100%,22rem)] rounded-3xl bg-[#1A1A1A] px-6 py-6 text-center text-white shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <p className="text-4xl" aria-hidden="true">🌙</p>
-            <p className="mt-2 text-sm font-semibold text-[#FC3D21]">Nova</p>
-            <p className="mt-2 text-2xl font-bold">The Moon is unlocked!</p>
-            <p className="mt-2 text-base leading-relaxed text-white/90">
-              You finished Mars. The Moon is ready. Come visit whenever you like.
-            </p>
-            <button
-              type="button"
-              onClick={() => setMoonNote(false)}
-              className="mt-5 rounded-full bg-[#FC3D21] px-6 py-2 text-base font-bold text-[#1A1A1A]"
-            >
-              Yay!
-            </button>
-          </div>
-        </div>
-      )}
-
-      {marsSiteVisit && !onSurface && (
+      {siteVisit && !onSurface && (
         <p className="pointer-events-none absolute left-0 right-0 top-1/2 z-40 -translate-y-1/2 text-center text-lg text-white/90">
-          Landing on Mars…
+          {moonSiteVisit ? "Descending into Surveyor Crater…" : "Landing on Mars…"}
         </p>
       )}
 
-      {showKids && <KidsMode machineId="opportunity" onClose={() => setOpen(null)} />}
+      {showKids && (
+        <KidsMode
+          machineId={item.id}
+          onClose={closeKids}
+          onCompleteCelebration={spaceAudio.playMissionComplete}
+        />
+      )}
 
       <audio
         ref={narrationRef}

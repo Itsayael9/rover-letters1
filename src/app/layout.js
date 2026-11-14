@@ -1,6 +1,7 @@
 import { Fraunces, Inter, Nunito, Share_Tech_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { LangProvider } from "@/context/LangContext";
+import { AudioPrefsProvider } from "@/context/AudioPrefsContext";
 import { ProgressProvider } from "@/state/progress";
 
 const inter = Inter({
@@ -49,7 +50,9 @@ export default function RootLayout({ children }) {
     >
       <body>
         <LangProvider>
-          <ProgressProvider>{children}</ProgressProvider>
+          <AudioPrefsProvider>
+            <ProgressProvider>{children}</ProgressProvider>
+          </AudioPrefsProvider>
         </LangProvider>
       </body>
     </html>
