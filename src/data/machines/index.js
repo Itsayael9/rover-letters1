@@ -1,5 +1,6 @@
 import { OPPORTUNITY_KIDS } from "@/data/kids/opportunity";
 import { SURVEYOR3_KIDS } from "@/data/kids/surveyor3";
+import { APOLLO12_KIDS } from "@/data/kids/apollo12";
 
 /** Central registry — map pins, kids data, and future machine components. */
 export const MACHINES = {
@@ -35,7 +36,8 @@ export const MACHINES = {
     mapX: 43,
     mapY: 52,
     themeColor: "#f5c451",
-    experience: "coming-soon",
+    kids: APOLLO12_KIDS,
+    experience: "apollo-act-two",
   },
 };
 

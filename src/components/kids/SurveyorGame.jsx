@@ -1,414 +1,343 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Surveyor3 from "@/components/kids/Surveyor3";
-import ArtifactInspector from "@/components/kids/ArtifactInspector";
+import { useCallback, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import LunarMission3D from "@/components/kids/surveyor/LunarMission3D";
+import SurveyorGameBeat from "@/components/kids/surveyor/SurveyorGameBeat";
 import { useRadioAudio } from "@/hooks/useRadioAudio";
 import { useProgress } from "@/store/progress";
 import { SURVEYOR3_KIDS } from "@/data/kids/surveyor3";
 
 const CALL = SURVEYOR3_KIDS.radioCallouts;
-const THEME = SURVEYOR3_KIDS.themeColor;
-const ARTIFACTS = SURVEYOR3_KIDS.artifacts;
+const BEATS = SURVEYOR3_KIDS.gameBeats;
 
-const SOIL_TESTS = [
-  { id: "footpad", label: "Footpad load press", gain: 0.35 },
-  { id: "trench", label: "17.5 cm trench dig", gain: 0.65 },
-  { id: "bearing", label: "Regolith bearing test", gain: 1 },
+const STEPS = [
+  { id: "search", n: "01", label: "Scout" },
+  { id: "dig", n: "02", label: "Scoop" },
+  { id: "scan", n: "03", label: "Photo" },
+  { id: "notify", n: "04", label: "Radio" },
+  { id: "landing", n: "05", label: "Land" },
+  { id: "flag", n: "06", label: "Flag" },
 ];
 
-const SCAN_HOTSPOTS = [
-  { id: "tv-camera", artifactId: "tv-camera", label: "TV camera mirror", x: 50, y: 28, highlight: "camera" },
-  { id: "soil-scoop", artifactId: "soil-scoop", label: "Blue soil scoop", x: 28, y: 55, highlight: "scoop" },
-  { id: "strut-tubes", artifactId: "strut-tubes", label: "Support strut tubes", x: 58, y: 42, highlight: "solar" },
-];
+function hintFor(phase, { dist, dig, scan, canPlant }) {
+  if (phase === "search") {
+    if (dist == null) return "Click the crater. Follow the green arrow to the pad.";
+    if (dist < 8) return "Pad in sight. Tap Test soil, or roll onto the green ring.";
+    return `Pad ${Math.max(1, Math.round(dist))} m ahead · click the ground`;
+  }
+  if (phase === "dig") return dig >= 1 ? "Soil test complete." : "Tap Dig. The scoop works until the test is done.";
+  if (phase === "scan") return scan >= 1 ? "Panorama locked." : "Tap Pan camera. Houston needs a full look around.";
+  if (phase === "notify") return "Dish open. Call Apollo 12 and clear the landing.";
+  if (phase === "landing") return "Intrepid on final. Tap Touchdown when the legs kiss the dust.";
+  if (phase === "flag") {
+    return canPlant
+      ? "Boots on the dust. Tap Plant the flag."
+      : "Walking to the flag. The boots stay on the ground.";
+  }
+  return "";
+}
 
 function WaveBars({ level, active }) {
   return (
     <div className="s3-comms-wave" aria-hidden={!active}>
       {[0, 1, 2, 3, 4].map((i) => (
-        <span
-          key={i}
-          style={{
-            transform: `scaleY(${active ? 0.35 + level * (0.5 + i * 0.12) : 0.2})`,
-          }}
-        />
+        <span key={i} style={{ transform: `scaleY(${active ? 0.35 + level * (0.5 + i * 0.12) : 0.2})` }} />
       ))}
     </div>
   );
 }
 
-function StageDots({ stage }) {
+function Tele({ k, v }) {
   return (
-    <div className="s3-stage-dots" aria-label={`Game stage ${stage} of 3`}>
-      {[1, 2, 3].map((n) => (
-        <span key={n} className={n === stage ? "is-current" : n < stage ? "is-done" : ""} />
-      ))}
+    <div className="s3-tele-item">
+      <span>{k}</span>
+      <strong>{v}</strong>
     </div>
   );
 }
 
-function ArtifactTray({ unlockedIds }) {
-  return (
-    <div className="s3-artifact-tray" aria-label="Recovered artifacts">
-      {ARTIFACTS.map((a) => {
-        const on = unlockedIds.includes(a.id);
-        return (
-          <div key={a.id} className={`s3-tray-slot${on ? " is-unlocked" : ""}`} title={a.name}>
-            {on ? (
-              <img src={a.image} alt="" />
-            ) : (
-              <span className="s3-tray-lock" aria-hidden="true">
-                ?
-              </span>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function MissionCompleteSummary({ onExit }) {
-  return (
-    <div className="s3-mission-summary kids-mode">
-      <div className="s3-finale-card s3-mission-summary-card">
-        <p className="s3-finale-emoji" aria-hidden="true">
-          🌙
-        </p>
-        <h2>Apollo Lunar Scout Certificate</h2>
-        <p>You cleared Surveyor Crater, tested the soil, and helped Apollo 12 recover real Moon hardware!</p>
-        <ul className="s3-summary-artifacts">
-          {ARTIFACTS.map((a) => (
-            <li key={a.id}>
-              <img src={a.image} alt="" />
-              <div>
-                <strong>{a.name}</strong>
-                <span>{a.nasaId}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p className="s3-act2-banner">Act II: Visit Apollo 12 on the Moon whenever you like!</p>
-        <button type="button" className="kids-btn kids-btn-primary s3-launch-btn" onClick={onExit}>
-          Back to the Moon
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Stage 1 — manual vernier cutoff timing bar */
-function StageLanding({ radio, onSuccess }) {
-  const [alt, setAlt] = useState(10);
-  const [zone] = useState(() => ({
-    start: 38 + Math.floor(Math.random() * 22),
-    width: 16 + Math.floor(Math.random() * 8),
-  }));
-  const [marker, setMarker] = useState(0);
-  const [result, setResult] = useState(null);
-  const raf = useRef(null);
-  const dir = useRef(1);
-  const introDone = useRef(false);
-
-  useEffect(() => {
-    if (introDone.current) return;
-    introDone.current = true;
-    void radio.speakRadio(CALL.stage1Intro);
-    radio.playThrusterPulse();
-  }, [radio]);
-
-  useEffect(() => {
-    if (result) return undefined;
-    const tick = () => {
-      setMarker((m) => {
-        let next = m + dir.current * 0.9;
-        if (next >= 100) {
-          next = 100;
-          dir.current = -1;
-        } else if (next <= 0) {
-          next = 0;
-          dir.current = 1;
-        }
-        return next;
-      });
-      setAlt((a) => Math.max(0, a - 0.018));
-      raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
-  }, [result]);
-
-  const cut = () => {
-    if (result === "ok") return;
-    const inZone = marker >= zone.start && marker <= zone.start + zone.width;
-    if (inZone) {
-      setResult("ok");
-      radio.playSuccessChime();
-      void radio.speakRadio(CALL.stage1Success).then(() => onSuccess());
-    } else {
-      setResult("retry");
-      radio.playScanPing();
-      void radio.speakRadio("Missed the window! Verniers still firing—try again!");
-      window.setTimeout(() => {
-        setResult(null);
-        setAlt(10);
-        setMarker(0);
-      }, 1400);
-    }
-  };
-
-  return (
-    <div className="s3-stage">
-      <h3>Stage 1 — Crater bounce stabilizer</h3>
-      <p className="s3-stage-sub">14° slope · bright rocks jamming radar</p>
-      <div className="s3-alt-readout">
-        Altitude <strong>{alt.toFixed(1)}</strong> m
-        <span className="s3-thruster-flame" aria-hidden="true" />
-      </div>
-      <Surveyor3
-        pose="bounce"
-        mood="surprised"
-        highlight="legs"
-        talking={radio.talking}
-        waveLevel={radio.waveLevel}
-        size="min(100%, 220px)"
-      />
-      <img
-        src="/surveyor3/landing-crater.jpg"
-        alt=""
-        className="s3-stage-thumb"
-      />
-      <p className="s3-stage-hint">Tap when the gold marker is inside the green zone.</p>
-      <div className="s3-timing-bar">
-        <div className="s3-zone" style={{ left: `${zone.start}%`, width: `${zone.width}%` }} />
-        <div className="s3-marker" style={{ left: `${marker}%` }} />
-      </div>
-      <button type="button" className="s3-big-btn" onClick={cut} disabled={result === "ok"}>
-        CUT VERNIER ENGINES
-      </button>
-    </div>
-  );
-}
-
-function StageScoop({ radio, onSuccess }) {
-  const [step, setStep] = useState(0);
-  const [psi, setPsi] = useState(0);
-  const [pose, setPose] = useState("dig");
-  const [running, setRunning] = useState(false);
-  const [testsDone, setTestsDone] = useState(false);
-  const introDone = useRef(false);
-
-  useEffect(() => {
-    if (introDone.current) return;
-    introDone.current = true;
-    void radio.speakRadio(CALL.stage2Intro);
-  }, [radio]);
-
-  const runTest = () => {
-    const test = SOIL_TESTS[step];
-    if (!test || running || testsDone) return;
-    setRunning(true);
-    radio.playServoDig();
-    setPose("dig");
-    const target = Math.round(6 * test.gain * 10) / 10;
-    let t = 0;
-    const id = window.setInterval(() => {
-      t += 1;
-      setPsi((p) => Math.min(target, p + 0.4));
-      if (t > 12) {
-        window.clearInterval(id);
-        setRunning(false);
-        if (step >= SOIL_TESTS.length - 1) {
-          setPsi(6);
-          setTestsDone(true);
-          setPose("proud");
-          radio.playSuccessChime();
-          void radio.speakRadio(CALL.stage2Success).then(() => onSuccess());
-        } else {
-          setStep((s) => s + 1);
-          setPose("proud");
-        }
-      }
-    }, 80);
-  };
-
-  return (
-    <div className="s3-stage">
-      <h3>Stage 2 — Robotic soil scoop lab</h3>
-      <p className="s3-stage-sub">{SOIL_TESTS[step]?.label ?? "All tests complete"}</p>
-      <Surveyor3
-        pose={pose}
-        highlight="scoop"
-        talking={radio.talking}
-        waveLevel={radio.waveLevel}
-        size="min(100%, 200px)"
-      />
-      <img src="/surveyor3/soil-trench.jpg" alt="" className="s3-stage-thumb" />
-      <div className="s3-gauge">
-        <div className="s3-gauge-fill" style={{ width: `${(psi / 6) * 100}%` }} />
-        <span>{psi >= 6 ? "6 PSI — APOLLO SAFE" : `${psi.toFixed(1)} PSI`}</span>
-      </div>
-      <button type="button" className="s3-big-btn" onClick={runTest} disabled={running || testsDone}>
-        {testsDone
-          ? "Soil cleared for Apollo!"
-          : `Run test ${Math.min(step + 1, SOIL_TESTS.length)} / ${SOIL_TESTS.length}`}
-      </button>
-    </div>
-  );
-}
-
-function StageApollo({ radio, onSuccess, onUnlockArtifact }) {
-  const [scanned, setScanned] = useState([]);
-  const [beam, setBeam] = useState(null);
-  const [introDone, setIntroDone] = useState(false);
-  const [finishing, setFinishing] = useState(false);
-  const introStarted = useRef(false);
-
-  useEffect(() => {
-    if (introStarted.current) return;
-    introStarted.current = true;
-    let live = true;
-    (async () => {
-      await radio.speakRadio(CALL.stage3Intro, { pitch: 0.88 });
-      if (!live) return;
-      await radio.speakRadio(CALL.apollo12Quote, { rate: 1.02, pitch: 1.05 });
-      if (live) setIntroDone(true);
-    })();
-    return () => {
-      live = false;
-    };
-  }, [radio]);
-
-  const scan = (spot) => {
-    if (!introDone || scanned.includes(spot.id) || finishing) return;
-    radio.playScanPing();
-    setBeam(spot);
-    window.setTimeout(() => {
-      setScanned((prev) => {
-        const next = [...prev, spot.id];
-        onUnlockArtifact?.(spot.artifactId);
-        if (next.length >= SCAN_HOTSPOTS.length) {
-          setFinishing(true);
-          radio.playSuccessChime();
-          void radio.speakRadio(CALL.stage3Success).then(() => onSuccess());
-        }
-        return next;
-      });
-      setBeam(null);
-    }, 700);
-  };
-
-  return (
-    <div className="s3-stage s3-stage-scan">
-      <h3>Stage 3 — Apollo 12 time-capsule recovery</h3>
-      <p className="s3-stage-sub">Nov 1969 · scan each piece Pete Conrad carried home</p>
-      <div className="s3-scan-stage">
-        <img src="/surveyor3/apollo12-visit.jpg" alt="" className="s3-scan-photo" />
-        <div className="s3-scan-lander">
-          <Surveyor3
-            pose="idle"
-            highlight={beam?.highlight}
-            talking={radio.talking}
-            waveLevel={radio.waveLevel}
-            size="100%"
-          />
-        </div>
-        {introDone &&
-          SCAN_HOTSPOTS.map((spot) => (
-            <button
-              key={spot.id}
-              type="button"
-              className={`s3-hotspot${scanned.includes(spot.id) ? " is-done" : ""}`}
-              style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
-              onClick={() => scan(spot)}
-              disabled={finishing}
-            >
-              {scanned.includes(spot.id) ? "✓" : spot.label}
-            </button>
-          ))}
-        {beam ? (
-          <div className="s3-scanner-beam" style={{ left: `${beam.x}%`, top: `${beam.y}%` }} />
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-export default function SurveyorGame({ onExit, onCompleteCelebration }) {
+export default function SurveyorGame({ onExit, onCompleteCelebration, onContinueApollo12 }) {
   const radio = useRadioAudio();
   const { completeMachine } = useProgress();
-  const [stage, setStage] = useState(1);
-  /** play → inspect → summary */
-  const [flow, setFlow] = useState("play");
-  const [unlockedArtifacts, setUnlockedArtifacts] = useState([]);
+  const [phase, setPhase] = useState("search");
+  const [beatOpen, setBeatOpen] = useState("search");
+  const [digProgress, setDigProgress] = useState(0);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [padDist, setPadDist] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [canPlant, setCanPlant] = useState(false);
   const celebrated = useRef(false);
+  const lastDigUi = useRef(0);
+  const lastScanUi = useRef(0);
+  const pendingPhase = useRef(null);
+  const digDone = useRef(false);
+  const scanDone = useRef(false);
 
-  const unlockArtifact = useCallback((id) => {
-    setUnlockedArtifacts((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  }, []);
+  const controlRef = useRef({
+    digHeld: false,
+    digAmount: 0,
+    scanHeld: false,
+    scanAmount: 0,
+    plantAmount: 0,
+    plantClick: false,
+    phase: "search",
+  });
+  const beatRef = useRef(beatOpen);
+  const landGate = useRef(false);
+  beatRef.current = beatOpen;
+  controlRef.current.phase = beatOpen ? "pause" : phase;
 
-  const finishStage3 = useCallback(() => {
-    if (!celebrated.current) {
-      celebrated.current = true;
-      completeMachine("surveyor-3");
-      onCompleteCelebration?.();
+  const openBeat = useCallback(
+    (key) => {
+      setBeatOpen(key);
+      const beat = BEATS[key];
+      if (beat?.voice && CALL[beat.voice]) void radio.speakRadio(CALL[beat.voice]);
+    },
+    [radio]
+  );
+
+  const dismissBeat = useCallback(() => {
+    setBeatOpen(null);
+    if (pendingPhase.current) {
+      setPhase(pendingPhase.current);
+      pendingPhase.current = null;
     }
-    setFlow("inspect");
-  }, [completeMachine, onCompleteCelebration]);
+  }, []);
 
   const toggleComms = useCallback(() => {
     radio.setCommsOn((v) => !v);
     if (radio.commsOn) radio.stopRadio();
   }, [radio]);
 
-  if (flow === "summary") {
-    return <MissionCompleteSummary onExit={onExit} />;
-  }
+  const onPadReached = useCallback(() => {
+    if (controlRef.current.phase !== "search" || beatRef.current) return;
+    if (pendingPhase.current === "dig") return;
+    pendingPhase.current = "dig";
+    openBeat("dig");
+  }, [openBeat]);
 
-  if (flow === "inspect") {
-    return (
-      <div className="s3-game kids-mission-game">
-        <ArtifactInspector
-          artifacts={ARTIFACTS}
-          themeColor={THEME}
-          onDone={() => setFlow("summary")}
-        />
-      </div>
-    );
-  }
+  const startSoilTest = useCallback(() => {
+    if (beatRef.current || phase !== "search") return;
+    pendingPhase.current = "dig";
+    openBeat("dig");
+  }, [openBeat, phase]);
+
+  const runDig = useCallback(() => {
+    controlRef.current.digHeld = true;
+    setBusy(true);
+  }, []);
+
+  const runScan = useCallback(() => {
+    controlRef.current.scanHeld = true;
+    setBusy(true);
+  }, []);
+
+  const onDigProgress = useCallback(
+    (amount) => {
+      controlRef.current.digAmount = amount;
+      if (amount - lastDigUi.current >= 0.04 || amount >= 1) {
+        lastDigUi.current = amount;
+        setDigProgress(amount);
+      }
+      if (amount >= 1 && !digDone.current) {
+        digDone.current = true;
+        controlRef.current.digHeld = false;
+        setBusy(false);
+        pendingPhase.current = "scan";
+        openBeat("scan");
+      }
+    },
+    [openBeat]
+  );
+
+  const onScanProgress = useCallback(
+    (amount) => {
+      controlRef.current.scanAmount = amount;
+      if (amount - lastScanUi.current >= 0.04 || amount >= 1) {
+        lastScanUi.current = amount;
+        setScanProgress(amount);
+      }
+      if (amount >= 1 && !scanDone.current) {
+        scanDone.current = true;
+        controlRef.current.scanHeld = false;
+        setBusy(false);
+        pendingPhase.current = "notify";
+        openBeat("notify");
+      }
+    },
+    [openBeat]
+  );
+
+  const notifyApollo = useCallback(() => {
+    pendingPhase.current = "landing";
+    openBeat("landing");
+  }, [openBeat]);
+
+  const onLanded = useCallback(() => {
+    if (landGate.current) return;
+    landGate.current = true;
+    pendingPhase.current = "flag";
+    setCanPlant(false);
+    openBeat("flag");
+  }, [openBeat]);
+
+  const onStatus = useCallback(({ dist }) => {
+    setPadDist(dist);
+  }, []);
+
+  const onFlagPlanted = useCallback(() => {
+    setPhase((p) => {
+      if (p === "complete") return p;
+      if (!celebrated.current) {
+        celebrated.current = true;
+        completeMachine("surveyor-3");
+        onCompleteCelebration?.();
+        void radio.speakRadio(CALL.stage3Success);
+      }
+      return "complete";
+    });
+  }, [completeMachine, onCompleteCelebration, radio]);
+
+  const plantFlag = useCallback(() => {
+    if (beatOpen) return;
+    if (phase !== "flag") return;
+    controlRef.current.plantClick = true;
+  }, [beatOpen, phase]);
+
+  const stepIndex = Math.max(0, STEPS.findIndex((s) => s.id === (phase === "complete" ? "flag" : phase)));
+  const gamePaused = Boolean(beatOpen);
+  const soilPsi = digProgress >= 1 ? "6 PSI" : digProgress > 0 ? `${(digProgress * 6).toFixed(1)} PSI` : "—";
+  const alt = phase === "landing" ? "final" : phase === "flag" || phase === "complete" ? "0 m" : "surface";
 
   return (
-    <div className="s3-game kids-mission-game">
-      <header className="s3-game-top">
-        <button type="button" className="kids-icon-btn" onClick={onExit}>
-          ← Moon
-        </button>
-        <StageDots stage={stage} />
-        <button
-          type="button"
-          className={`s3-comms-toggle${radio.commsOn ? " is-on" : ""}`}
-          onClick={toggleComms}
-          aria-pressed={radio.commsOn}
-        >
-          COMMS AUDIO
-          <WaveBars level={radio.waveLevel} active={radio.talking && radio.commsOn} />
-        </button>
-      </header>
+    <div className={`s3-game kids-mission-game s3-game--3d s3-view--${phase}${gamePaused ? " is-paused" : ""}`}>
+      <LunarMission3D
+        controlRef={controlRef}
+        phase={gamePaused ? "pause" : phase}
+        talking={radio.talking}
+        onPadReached={onPadReached}
+        onDigProgress={onDigProgress}
+        onScanProgress={onScanProgress}
+        onLanded={onLanded}
+        onFlagPlanted={onFlagPlanted}
+        onCanPlant={() => setCanPlant(true)}
+        onStatus={onStatus}
+      />
 
-      <p className="s3-game-title s3-game-title--inline">{SURVEYOR3_KIDS.missionTitle}</p>
+      <div className="s3-vignette" aria-hidden="true" />
 
-      {stage === 1 && <StageLanding radio={radio} onSuccess={() => setStage(2)} />}
-      {stage === 2 && <StageScoop radio={radio} onSuccess={() => setStage(3)} />}
-      {stage === 3 && (
-        <StageApollo
-          radio={radio}
-          onSuccess={finishStage3}
-          onUnlockArtifact={unlockArtifact}
-        />
+      <div className="s3-3d-hud">
+        <header className="s3-game-top s3-3d-top">
+          <button type="button" className="kids-icon-btn s3-back" onClick={onExit}>
+            ← Moon
+          </button>
+          <ol className="s3-rail" aria-label="Mission steps">
+            {STEPS.map((step, i) => (
+              <li key={step.id} className={i < stepIndex ? "is-done" : i === stepIndex ? "is-current" : ""}>
+                <span>
+                  <em>{step.n}</em>
+                  {step.label}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <button
+            type="button"
+            className={`s3-comms-toggle${radio.commsOn ? " is-on" : ""}`}
+            onClick={toggleComms}
+            aria-pressed={radio.commsOn}
+          >
+            COMMS
+            <WaveBars level={radio.waveLevel} active={radio.talking && radio.commsOn} />
+          </button>
+        </header>
+
+        <div className="s3-tele" aria-hidden="true">
+          <Tele k="Site" v="Surveyor Crater" />
+          <Tele k="Pad" v={padDist == null ? "—" : `${Math.round(padDist)} m`} />
+          <Tele k="Soil" v={soilPsi} />
+          <Tele k="Photo" v={scanProgress >= 1 ? "locked" : `${Math.round(scanProgress * 100)}%`} />
+          <Tele k="Alt" v={alt} />
+        </div>
+
+        {!beatOpen && hintFor(phase, { dist: padDist, dig: digProgress, scan: scanProgress, canPlant }) ? (
+          <p className="s3-hud-line">{hintFor(phase, { dist: padDist, dig: digProgress, scan: scanProgress, canPlant })}</p>
+        ) : null}
+
+        <div className="s3-3d-controls">
+          {phase === "search" && !beatOpen && (
+            <button type="button" className="kids-btn kids-btn-primary s3-hud-btn" onClick={startSoilTest}>
+              Test the soil
+            </button>
+          )}
+          {phase === "dig" && !beatOpen && (
+            <>
+              <div className="s3-3d-gauge" aria-label="Soil sample">
+                <span className="s3-gauge-fill" style={{ width: `${Math.round(digProgress * 100)}%` }} />
+                <span className="s3-3d-gauge-label">Scoop {Math.round(digProgress * 100)}%</span>
+              </div>
+              <button type="button" className="kids-btn kids-btn-primary s3-hud-btn" onClick={runDig} disabled={busy || digProgress >= 1}>
+                {busy ? "Digging…" : "Dig"}
+              </button>
+            </>
+          )}
+          {phase === "scan" && !beatOpen && (
+            <>
+              <div className="s3-3d-gauge" aria-label="Panorama">
+                <span className="s3-gauge-fill" style={{ width: `${Math.round(scanProgress * 100)}%` }} />
+                <span className="s3-3d-gauge-label">Camera {Math.round(scanProgress * 100)}%</span>
+              </div>
+              <button type="button" className="kids-btn kids-btn-primary s3-hud-btn" onClick={runScan} disabled={busy || scanProgress >= 1}>
+                {busy ? "Panning…" : "Pan camera"}
+              </button>
+            </>
+          )}
+          {phase === "notify" && !beatOpen && (
+            <button type="button" className="kids-btn kids-btn-primary s3-hud-btn" onClick={notifyApollo}>
+              Call Apollo 12
+            </button>
+          )}
+          {phase === "landing" && !beatOpen && (
+            <button type="button" className="kids-btn kids-btn-primary s3-hud-btn" onClick={onLanded}>
+              Touchdown
+            </button>
+          )}
+          {phase === "flag" && !beatOpen && (
+            <button type="button" className="kids-btn kids-btn-primary s3-hud-btn" onClick={plantFlag} disabled={!canPlant}>
+              {canPlant ? "Plant the flag" : "Walking to the flag…"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {beatOpen && BEATS[beatOpen] ? (
+          <SurveyorGameBeat beat={BEATS[beatOpen]} onContinue={dismissBeat} />
+        ) : null}
+      </AnimatePresence>
+
+      {phase === "complete" && (
+        <div className="s3-mission-summary s3-3d-summary">
+          <div className="kids-end-card s3-end-cream">
+            <p className="kids-end-emoji" aria-hidden="true">
+              🇺🇸
+            </p>
+            <h2>Flag on the Moon</h2>
+            <p>You scouted the pad, dug the soil, shot a panorama, called Apollo 12, watched Intrepid land, and planted the flag.</p>
+            <div className="kids-invite-actions">
+              {onContinueApollo12 ? (
+                <button type="button" className="kids-btn kids-btn-primary" onClick={onContinueApollo12}>
+                  Continue to Apollo 12
+                </button>
+              ) : null}
+              <button type="button" className="kids-btn kids-btn-ghost" onClick={onExit}>
+                Back to the Moon
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-
-      <ArtifactTray unlockedIds={unlockedArtifacts} />
     </div>
   );
 }

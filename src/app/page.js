@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BODIES } from "@/data/bodies";
 import { useLang } from "@/context/LangContext";
 import Intro from "@/components/Intro";
@@ -35,6 +35,16 @@ export default function Home() {
   const finished = useRef(false);
   const narrationRef = useRef(null);
   const spaceAudio = useSpaceAudio();
+
+  useEffect(() => {
+    const mission = new URLSearchParams(window.location.search).get("mission");
+    if (mission !== "surveyor-3") return;
+    finished.current = true;
+    setPhase("space");
+    setSelected("moon");
+    setOpen({ bodyId: "moon", equipId: "surveyor-3" });
+    setOnSurface(true);
+  }, []);
 
   const handleSelectPlanet = (id) => {
     if (id !== selected) setOpen(null);
@@ -163,7 +173,7 @@ export default function Home() {
         <SiteHeader title={t.site} onMap={body ? () => setMapOpen(true) : null} />
       )}
 
-      {introDone && body && (item || showKids) && (
+      {introDone && body && item && !showKids && (
         <button
           type="button"
           onClick={() => setMapOpen(true)}
