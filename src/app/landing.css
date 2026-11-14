@@ -1,0 +1,329 @@
+/* Landing + rocket cinematic (imported from page.js so dev HMR picks it up) */
+
+.landing-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(0, 0, 0, 0.55) 100%),
+    url("/textures/milkyway.jpg") center / cover no-repeat;
+  filter: brightness(0.78);
+}
+
+.landing-page,
+.rocket-cinematic {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  color: #f4efe4;
+}
+
+.landing-layout {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  height: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 28px;
+  align-items: center;
+}
+
+.landing-rocket-col {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.landing-rocket-wrap {
+  position: relative;
+  width: min(320px, 42vw);
+}
+
+.landing-rocket {
+  display: block;
+  width: 100%;
+  max-height: min(420px, 58vh);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.45));
+}
+
+.landing-flame {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  width: 42px;
+  height: 64px;
+  translate: -50% 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.landing-flame span {
+  width: 10px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, #fff2a8, #ff8a1a 55%, #e03a10);
+  animation: flame-flicker 0.18s ease-in-out infinite alternate;
+}
+
+.landing-flame span:nth-child(2) {
+  height: 52px;
+  animation-delay: 0.06s;
+}
+
+.landing-flame span:nth-child(1),
+.landing-flame span:nth-child(3) {
+  height: 40px;
+  margin-top: 10px;
+  opacity: 0.85;
+}
+
+.landing-copy {
+  max-width: 28rem;
+}
+
+.landing-kicker {
+  margin: 0 0 8px;
+  color: rgba(244, 239, 228, 0.55);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.landing-title {
+  margin: 0;
+  color: #f4efe4;
+  font-family: var(--font-story), "Fraunces", serif;
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.landing-tagline {
+  margin: 10px 0 20px;
+  color: rgba(244, 239, 228, 0.75);
+  font-family: var(--font-story), "Fraunces", serif;
+  font-size: clamp(1.1rem, 2.4vw, 1.45rem);
+}
+
+.landing-list {
+  margin: 0 0 18px;
+  padding-left: 1.1rem;
+  color: rgba(244, 239, 228, 0.82);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.landing-body {
+  margin: 0 0 28px;
+  color: rgba(244, 239, 228, 0.65);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.landing-begin {
+  min-height: 48px;
+  padding: 12px 32px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3d27a;
+  color: #1a140c;
+  font-family: var(--font-ui), "Nunito", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.landing-begin:hover {
+  background: #ffe08a;
+}
+
+.rocket-cinematic.is-leaving {
+  opacity: 0;
+  transition: opacity 0.65s ease;
+  pointer-events: none;
+}
+
+.solar-system-view {
+  position: absolute;
+  inset: 2% 1% 14%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.solar-system-view canvas {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.solar-diagram-caption {
+  position: relative;
+  z-index: 3;
+  margin: 0 0 6px;
+  padding: 0 12px;
+  color: rgba(244, 239, 228, 0.72);
+  font-family: var(--font-ui), "Nunito", sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  pointer-events: none;
+}
+
+.solar-orbit-label {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(8, 12, 22, 0.82);
+  border: 1px solid rgba(200, 212, 232, 0.35);
+  color: #e8eef8;
+  font-family: var(--font-ui), "Nunito", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.solar-orbit-label--sun {
+  border-color: rgba(255, 210, 120, 0.55);
+  color: #ffe4a8;
+}
+
+.solar-planet-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-family: var(--font-ui), "Nunito", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.solar-rocket-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.solar-rocket {
+  width: min(72px, 11vw);
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.55));
+}
+
+.cinematic-rocket-launch {
+  position: absolute;
+  left: 12%;
+  bottom: 18%;
+  z-index: 4;
+  width: min(200px, 28vw);
+  transition: opacity 0.6s ease;
+}
+
+.cinematic-rocket-launch img,
+.cinematic-rocket-img {
+  width: 100%;
+  height: auto;
+  max-height: min(360px, 50vh);
+  object-fit: contain;
+}
+
+.cinematic-rocket-launch.is-flying {
+  animation: rocket-launch 3.2s ease-in forwards;
+}
+
+.cinematic-rocket-launch.is-gone {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.launch-flame {
+  bottom: 2%;
+}
+
+.cinematic-lyrics {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 8%;
+  z-index: 6;
+  min-height: 4rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.cinematic-lyrics p {
+  margin: 0;
+  color: #f4efe4;
+  font-family: var(--font-story), "Fraunces", serif;
+  font-size: clamp(1.15rem, 2.8vw, 1.85rem);
+  line-height: 1.45;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.75);
+}
+
+.cinematic-wait {
+  opacity: 0;
+}
+
+.cinematic-skip {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 8;
+  border: 0;
+  background: transparent;
+  color: rgba(244, 239, 228, 0.6);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cinematic-skip:hover {
+  color: #fff;
+}
+
+@keyframes flame-flicker {
+  from { transform: scaleY(0.88); opacity: 0.85; }
+  to { transform: scaleY(1.08); opacity: 1; }
+}
+
+@keyframes rocket-launch {
+  0% { transform: translate(0, 0) rotate(-6deg); opacity: 1; }
+  55% { transform: translate(28vw, -38vh) rotate(4deg) scale(0.92); opacity: 1; }
+  100% { transform: translate(48vw, -62vh) rotate(10deg) scale(0.75); opacity: 0; }
+}
+
+@media (max-width: 800px) {
+  .landing-layout {
+    grid-template-columns: 1fr;
+    padding: 32px 20px 40px;
+    align-content: center;
+  }
+
+  .landing-rocket-wrap {
+    width: min(220px, 60vw);
+  }
+
+  .landing-copy {
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-flame span,
+  .cinematic-rocket-launch.is-flying {
+    animation: none;
+  }
+}

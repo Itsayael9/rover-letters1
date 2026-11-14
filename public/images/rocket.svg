@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 400" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="body" x1="80" y1="40" x2="80" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8f9fb"/>
+      <stop offset="0.45" stop-color="#e2e6ee"/>
+      <stop offset="1" stop-color="#c5ccd8"/>
+    </linearGradient>
+    <linearGradient id="nose" x1="80" y1="8" x2="80" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff6b4a"/>
+      <stop offset="1" stop-color="#c62828"/>
+    </linearGradient>
+    <linearGradient id="fin" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#b71c1c"/>
+      <stop offset="1" stop-color="#7f0000"/>
+    </linearGradient>
+  </defs>
+  <!-- fins -->
+  <path d="M48 268 L18 330 L48 300 Z" fill="url(#fin)"/>
+  <path d="M112 268 L142 330 L112 300 Z" fill="url(#fin)"/>
+  <!-- main body -->
+  <path d="M56 88 C56 50 72 24 80 12 C88 24 104 50 104 88 L108 290 C108 308 96 318 80 318 C64 318 52 308 52 290 Z" fill="url(#body)"/>
+  <!-- nose cone -->
+  <path d="M56 88 C56 50 72 24 80 12 C88 24 104 50 104 88 Z" fill="url(#nose)"/>
+  <!-- window -->
+  <circle cx="80" cy="130" r="14" fill="#1a3a5c" stroke="#5c7a99" stroke-width="3"/>
+  <circle cx="80" cy="130" r="8" fill="#7ec8e8" opacity="0.85"/>
+  <!-- stripe -->
+  <rect x="52" y="200" width="56" height="10" rx="2" fill="#1565c0"/>
+  <!-- engine bell -->
+  <path d="M62 300 L80 340 L98 300 Z" fill="#455a64"/>
+  <ellipse cx="80" cy="302" rx="22" ry="6" fill="#37474f"/>
+</svg>

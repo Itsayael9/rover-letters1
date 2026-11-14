@@ -1,0 +1,336 @@
+.opp-mars-meet {
+  --cream: #fff6eb;
+  --ink: #2a1a0c;
+  --muted: #6b4a32;
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.opp-mars-meet-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 45%;
+  bottom: 0;
+  background: linear-gradient(
+    transparent 0%,
+    rgba(55, 28, 14, 0.35) 28%,
+    rgba(45, 24, 12, 0.55) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Cartoon SVG Opp — sits on the Martian ground, not flying */
+.opp-mars-rover-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 34%;
+  z-index: 2;
+  width: min(420px, 78vw);
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+.opp-mars-topbar,
+.opp-mars-panel,
+.opp-mars-back {
+  pointer-events: auto;
+}
+
+.opp-mars-topbar {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.opp-mars-back {
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff6eb;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 16px rgba(40, 20, 8, 0.25);
+  cursor: pointer;
+}
+
+.opp-mars-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #fff6eb;
+  box-shadow: 0 6px 16px rgba(40, 20, 8, 0.2);
+}
+
+.opp-mars-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #e0c8a8;
+}
+
+.opp-mars-dot.is-current {
+  background: #e76f51;
+  transform: scale(1.2);
+}
+
+.opp-mars-dot.is-done {
+  background: #2a9d8f;
+}
+
+.opp-mars-stars {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #fff6eb;
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(40, 20, 8, 0.2);
+}
+
+.opp-mars-nametag {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  z-index: 4;
+  translate: -50% 0;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: #fff6eb;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: clamp(0.95rem, 2.5vw, 1.15rem);
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 20px rgba(40, 20, 8, 0.28);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Bottom Q&A — always on top and clickable */
+.opp-mars-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  min-height: 240px;
+  max-height: 46vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  pointer-events: auto;
+  background: linear-gradient(
+    transparent,
+    rgba(45, 24, 12, 0.55) 18%,
+    rgba(45, 24, 12, 0.72) 100%
+  );
+}
+
+.opp-mars-line {
+  margin: 0;
+  width: min(100%, 40rem);
+  min-height: 3.2rem;
+  padding: 14px 18px;
+  border-radius: 20px;
+  background: var(--cream);
+  color: var(--ink);
+  border: 3px solid #f0d7b4;
+  box-shadow: 0 10px 24px rgba(40, 20, 8, 0.22);
+  font-size: clamp(1.05rem, 2.8vw, 1.3rem);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.opp-mars-quiz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 36rem);
+}
+
+@media (min-width: 700px) {
+  .opp-mars-quiz {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .opp-mars-choice {
+    flex: 1 1 30%;
+    min-width: 9.5rem;
+  }
+}
+
+.opp-mars-choice {
+  min-height: 64px;
+  padding: 14px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 22px;
+  font: inherit;
+  font-size: clamp(1.05rem, 2.8vw, 1.25rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18), 0 12px 22px rgba(40, 20, 8, 0.2);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  touch-action: manipulation;
+}
+
+.opp-mars-choice .opp-mars-choice-icon {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.opp-mars-choice.tone-yellow {
+  background: #f4d35e;
+}
+
+.opp-mars-choice.tone-orange {
+  background: #f4a261;
+}
+
+.opp-mars-choice.tone-teal {
+  background: #2a9d8f;
+  color: #fff8ef;
+}
+
+.opp-mars-choice:hover,
+.opp-mars-choice:focus-visible {
+  transform: translateY(-3px);
+  filter: brightness(1.06);
+  outline: 3px solid #fff6eb;
+  outline-offset: 2px;
+}
+
+.opp-mars-choice:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18), 0 6px 12px rgba(40, 20, 8, 0.18);
+}
+
+.opp-mars-choice.picked {
+  outline: 3px solid #fff;
+  filter: brightness(1.08);
+}
+
+.opp-mars-hint {
+  width: 100%;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #fff0d8;
+  color: #8a3b1a;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.opp-mars-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 24rem);
+}
+
+.opp-mars-btn {
+  min-height: 56px;
+  width: 100%;
+  max-width: 280px;
+  padding: 12px 28px;
+  border: 0;
+  border-radius: 999px;
+  background: #f4d35e;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+}
+
+.opp-mars-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.opp-mars-btn.ghost {
+  background: #fff6eb;
+  color: var(--muted);
+  box-shadow: 0 4px 14px rgba(40, 20, 8, 0.18);
+  max-width: 220px;
+  min-height: 48px;
+  font-size: 0.95rem;
+}
+
+.opp-mars-warn {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fff6eb;
+  color: #b33a2b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .opp-mars-back {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    min-height: 44px;
+  }
+
+  .opp-mars-nametag {
+    top: 58px;
+    font-size: 0.9rem;
+    padding: 6px 14px;
+  }
+
+  .opp-mars-rover-wrap {
+    bottom: 40%;
+    width: min(340px, 88vw);
+  }
+
+  .opp-mars-panel {
+    max-height: 52vh;
+    min-height: 260px;
+  }
+
+  .opp-mars-choice {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opp-mars-choice,
+  .opp-mars-btn {
+    transition: none;
+  }
+}
