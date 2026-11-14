@@ -10,6 +10,7 @@ import {
   COMPANION, BUILD, LAUNCH, LOOK_PINS, LOOK_PROMPT, MISSIONS, BOARD, CLAIM, CHALLENGE, SIGN, LETTER, UI,
 } from "../../data/missionGame";
 import { useProgress } from "@/state/progress";
+import { useSpaceAudio } from "@/hooks/useSpaceAudio";
 
 const FONT = '"Baloo 2", "Nunito", ui-rounded, system-ui, sans-serif';
 const T = { sky: "#0e1a38", navy: "#1d3f78", cream: "#fffaf3", gold: "#f0c14a", ink: "#3a2a24", bad: "#e0603f" };
@@ -623,11 +624,21 @@ function Report({ data, stats, onReplay, onExit }) {
 // ---------- main ----------
 export default function MissionGame({ machineId, onExit }) {
   const { completeMachine } = useProgress();
+  const { playMissionComplete } = useSpaceAudio();
   const [phase, setPhase] = useState(0); // 0 build, 1 launch, 2 mission, 3 letter
+  const celebrated = useRef(false);
 
   useEffect(() => {
-    if (phase === 3) completeMachine(machineId);
-  }, [phase, machineId, completeMachine]);
+    if (phase !== 3) {
+      celebrated.current = false;
+      return;
+    }
+    completeMachine(machineId);
+    if (!celebrated.current) {
+      celebrated.current = true;
+      playMissionComplete();
+    }
+  }, [phase, machineId, completeMachine, playMissionComplete]);
   const [data, setData] = useState(null);
   const [stats, setStats] = useState({ hints: 0, helped: [] });
   const [round, setRound] = useState(0);

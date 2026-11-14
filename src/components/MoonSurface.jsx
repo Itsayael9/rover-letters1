@@ -178,13 +178,22 @@ export default function MoonSurface() {
     return (
         <group>
             <Stars
-                radius={180}
-                depth={80}
-                count={2500}
-                factor={3}
+                radius={200}
+                depth={120}
+                count={3200}
+                factor={4}
                 saturation={0}
-                fade={false}
-                speed={0}
+                fade
+                speed={0.15}
+            />
+
+            <directionalLight
+                position={[-20, 18, -14]}
+                intensity={0.45}
+                color="#b8c8ff"
+            />
+            <hemisphereLight
+                args={["#d8e4ff", "#141820", 0.35]}
             />
 
             <Terrain />

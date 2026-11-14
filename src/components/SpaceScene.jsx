@@ -266,9 +266,10 @@ function BodyLabel({ name, rtl }) {
   );
 }
 
-function Planet({ body, selected, onSelect, markerEls, faceMarkers = false, name, rtl }) {
+function Planet({ body, selected, onSelect, markerEls, faceMarkers = false, name, rtl, onPlanetHover }) {
   const spin = useRef();
   const meshRef = useRef();
+  const hoverSound = useRef(false);
 
   const [hovered, setHovered] = useState(false);
 
@@ -310,18 +311,22 @@ function Planet({ body, selected, onSelect, markerEls, faceMarkers = false, name
   }, [hovered]);
 
   return (
-    <group
-      position={body.position}
-      scale={hovered ? 1.06 : 1}
-    >
+    <group position={body.position} scale={hovered ? 1.07 : 1}>
       <group ref={spin}>
         <mesh
           ref={meshRef}
           onPointerOver={(e) => {
             e.stopPropagation();
             setHovered(true);
+            if (!hoverSound.current) {
+              hoverSound.current = true;
+              onPlanetHover?.();
+            }
           }}
-          onPointerOut={() => setHovered(false)}
+          onPointerOut={() => {
+            setHovered(false);
+            hoverSound.current = false;
+          }}
           onClick={(e) => {
             e.stopPropagation();
 
@@ -564,14 +569,14 @@ export default function SpaceScene({
   selected,
   onSelect,
   markerEls,
-  /** True when user chose a Mars equipment site. */
-  marsSiteVisit = false,
+  /** True when user chose an equipment site (Mars or Moon mission pin). */
+  siteVisit = false,
   onSurfaceChange,
   paused = false,
   names = {},
   rtl = false,
-  moonUnlocked = true,
-  onMoonLocked,
+  onPlanetHover,
+  onApproachStart,
 }) {
   const [view, setView] = useState("space");
 
@@ -617,17 +622,25 @@ export default function SpaceScene({
     return () => window.clearTimeout(timer);
   }, [view]);
 
-  useEffect(() => {
-    if (marsSiteVisit && selected === "mars" && view === "space") {
-      setView("approaching");
-    }
-  }, [marsSiteVisit, selected, view]);
+  const activeSiteVisit = siteVisit;
 
   useEffect(() => {
-    if (!marsSiteVisit && selected === "mars" && view === "surface") {
+    const missionBody = selected === "mars" || selected === "moon" ? selected : null;
+    if (activeSiteVisit && missionBody && view === "space") {
+      onApproachStart?.();
+      setView("approaching");
+    }
+  }, [activeSiteVisit, selected, view, onApproachStart]);
+
+  useEffect(() => {
+    if (
+      !activeSiteVisit &&
+      (selected === "mars" || selected === "moon") &&
+      view === "surface"
+    ) {
       setView("exit-surface");
     }
-  }, [marsSiteVisit, selected, view]);
+  }, [activeSiteVisit, selected, view]);
 
   // If the overlay "Back to space" button clears the planet while we
   // are still flying in or walking on the surface, go home cleanly.
@@ -644,23 +657,10 @@ export default function SpaceScene({
 
   const handlePlanetSelect = useCallback(
     (id) => {
-      if (id === "moon") {
-        if (view !== "space") return;
-        if (!moonUnlocked) {
-          onMoonLocked?.();
-          return;
-        }
-
-        onSelect?.(id);
-        setView("approaching");
-        return;
-      }
-
       if (view !== "space" && view !== "approaching") return;
-
       onSelect?.(id);
     },
-    [onSelect, view, moonUnlocked, onMoonLocked]
+    [onSelect, view]
   );
 
   const covered =
@@ -734,6 +734,7 @@ export default function SpaceScene({
                   faceMarkers={view === "space" && selected === body.id}
                   name={names[body.id]}
                   rtl={rtl}
+                  onPlanetHover={onPlanetHover}
                 />
               ))}
             </Suspense>
@@ -745,6 +746,9 @@ export default function SpaceScene({
           enablePan={false}
           minDistance={1}
           maxDistance={16}
+          enableDamping
+          dampingFactor={0.08}
+          rotateSpeed={0.65}
         />
 
         <CameraRig
@@ -759,7 +763,7 @@ export default function SpaceScene({
           }`}
       />
 
-      {view === "surface" && !marsSiteVisit && (
+      {view === "surface" && !activeSiteVisit && (
         <button
           type="button"
           onClick={() => setView("exit-cover")}

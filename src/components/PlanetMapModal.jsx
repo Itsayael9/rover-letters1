@@ -78,16 +78,19 @@ export default function PlanetMapModal({ planet, onClose, onPick }) {
                 onClick={() => choose(machine)}
               >
                 <span
-                className={`grid h-9 w-9 place-items-center rounded-full border-2 border-white text-sm font-bold ${
-                  done ? "bg-[#0B3D91] shadow-[0_0_16px_#FC3D21]" : "animate-pulse"
-                }`}
-                style={done ? undefined : { background: machine.color || "#FC3D21" }}
+                  className={`grid h-9 w-9 place-items-center rounded-full border-2 border-white text-sm font-bold transition-transform hover:scale-110 ${
+                    done ? "bg-[#0B3D91] shadow-[0_0_16px_#FC3D21]" : "animate-pulse"
+                  }`}
+                  style={done ? undefined : { background: machine.color || "#FC3D21" }}
                 >
                   {done ? "✓" : "?"}
                 </span>
                 {tipId === machine.id ? (
-                  <span className="absolute bottom-12 whitespace-nowrap bg-white px-2 py-1 text-sm font-bold text-[#1A1A1A]">
+                  <span className="absolute bottom-12 max-w-[12rem] whitespace-normal bg-white px-2 py-1 text-center text-sm font-bold text-[#1A1A1A]">
                     {machine.name}
+                    {machine.subtitle ? (
+                      <span className="mt-0.5 block text-xs font-medium">{machine.subtitle}</span>
+                    ) : null}
                   </span>
                 ) : null}
               </button>

@@ -9,17 +9,9 @@ export function machineIds() {
   return BODIES.flatMap((body) => (body.equipment ?? []).map((machine) => machine.id));
 }
 
-function machinesOf(planetId) {
-  return BODIES.find((body) => body.id === planetId)?.equipment ?? [];
-}
-
-/** Mars is always open. The Moon opens only after every Mars machine is finished. */
-export function planetUnlocked(planetId, completed) {
-  if (planetId === "mars") return true;
-  if (planetId === "moon") {
-    const mars = machinesOf("mars");
-    return mars.length > 0 && mars.every((machine) => completed.includes(machine.id));
-  }
+/** Free exploration — every planet is always visitable. */
+export function planetUnlocked(planetId) {
+  void planetId;
   return true;
 }
 
@@ -75,10 +67,7 @@ export function ProgressProvider({ children }) {
     [completedMachines]
   );
 
-  const isPlanetUnlocked = useCallback(
-    (planetId) => planetUnlocked(planetId, completedMachines),
-    [completedMachines]
-  );
+  const isPlanetUnlocked = useCallback((planetId) => planetUnlocked(planetId), []);
 
   const resetProgress = useCallback(() => {
     setCompletedMachines([]);
