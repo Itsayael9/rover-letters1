@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Opportunity from "@/components/kids/Opportunity";
 import Ingenuity from "@/components/kids/Ingenuity";
+import Viking from "@/components/kids/Viking";
 import MediaPanel from "@/components/kids/MediaPanel";
 import SegmentQuestion from "@/components/kids/SegmentQuestion";
 import MissionGame from "@/components/kids/MissionGame";
@@ -14,6 +15,7 @@ import { useDeepDive } from "@/components/deepdive/DeepDiveContext";
 import { MODEL_URL } from "@/components/deepdive/RoverModel";
 import { useGLTF } from "@react-three/drei";
 import { t } from "@/data/kids/text";
+import { useProgress } from "@/store/progress";
 
 function Mark({ children }) {
   return (
@@ -84,6 +86,7 @@ function GameMark() {
 
 export default function SegmentRunner({ machine, onExit }) {
   const reduceMotion = useReducedMotion();
+  const { completeMachine } = useProgress();
   const {
     ready,
     segmentIndex,
@@ -94,6 +97,7 @@ export default function SegmentRunner({ machine, onExit }) {
   } = useKidsProgress();
 
   const [paused, setPaused] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [phase, setPhase] = useState("lines");
   const [lineCursor, setLineCursor] = useState(0);
   const [media, setMedia] = useState(null);
@@ -116,7 +120,11 @@ export default function SegmentRunner({ machine, onExit }) {
     setHighlight(line.highlight ?? null);
   }, [lineCursor]);
 
-  const voice = useKidsVoice({ readAloud: true, onLineStart });
+  const voice = useKidsVoice({
+    readAloud: true,
+    muted: machine.id === "viking-1" ? muted : false,
+    onLineStart,
+  });
   const handbackRef = useRef(false);
   const lineCursorRef = useRef(lineCursor);
   const segmentIndexRef = useRef(segmentIndex);
@@ -193,6 +201,25 @@ export default function SegmentRunner({ machine, onExit }) {
       voice.holdPlayback();
       setPaused(true);
     }
+  };
+
+  const toggleMute = () => {
+    setMuted((on) => {
+      if (!on) voice.holdPlayback();
+      else voice.releasePlayback();
+      return !on;
+    });
+  };
+
+  const replayLine = () => {
+    if (phase !== "lines" && phase !== "follow") return;
+    const line =
+      phase === "follow"
+        ? segment?.reveal?.lines?.[0] ?? segment?.wrongReveal?.lines?.[0]
+        : segment?.lines?.[lineCursor];
+    if (!line) return;
+    voice.stop();
+    void voice.playLines([line]);
   };
 
   const skipVoice = () => {
@@ -299,7 +326,8 @@ export default function SegmentRunner({ machine, onExit }) {
     useGLTF.preload(MODEL_URL);
   }, [showReadMore]);
 
-  const Character = machine.id === "ingenuity" ? Ingenuity : Opportunity;
+  const Character =
+    machine.id === "ingenuity" ? Ingenuity : machine.id === "viking-1" ? Viking : Opportunity;
   const hasMiniGame = machine.id === "opportunity" || machine.id === "ingenuity";
   const playGameLabel = t(machine.playGameLabel) || "Play the mini-game";
 
@@ -310,7 +338,29 @@ export default function SegmentRunner({ machine, onExit }) {
     setPhase("mission");
   };
 
+  useEffect(() => {
+    if (phase === "invite" && machine.id === "viking-1") {
+      completeMachine(machine.id);
+    }
+  }, [phase, machine.id, completeMachine]);
+
   if (phase === "mission") {
+    if (machine.id === "viking-1") {
+      return (
+        <div className="kids-mode">
+          <div className="kids-end-card kids-mars-card">
+            <p className="kids-end-emoji" aria-hidden="true">
+              🛰️
+            </p>
+            <h2>{t(machine.missionControlTitle)}</h2>
+            <p>{t(machine.missionControlBody)}</p>
+            <button type="button" className="kids-btn kids-btn-primary" onClick={onExit}>
+              {t(machine.missionControlBack)}
+            </button>
+          </div>
+        </div>
+      );
+    }
     if (machine.id === "ingenuity") {
       return (
         <ScoutGame
@@ -374,6 +424,28 @@ export default function SegmentRunner({ machine, onExit }) {
               >
                 Read more
               </button>
+            ) : null}
+            {machine.id === "viking-1" ? (
+              <>
+                <button
+                  type="button"
+                  className={`kids-icon-btn${muted ? " is-on" : ""}`}
+                  aria-pressed={muted}
+                  aria-label={muted ? "Unmute narration" : "Mute narration"}
+                  onClick={toggleMute}
+                >
+                  {muted ? "🔇" : "🔊"}
+                </button>
+                <button
+                  type="button"
+                  className="kids-icon-btn"
+                  aria-label="Replay this line"
+                  disabled={phase !== "lines" && phase !== "follow"}
+                  onClick={replayLine}
+                >
+                  ↺
+                </button>
+              </>
             ) : null}
             <button
               type="button"
