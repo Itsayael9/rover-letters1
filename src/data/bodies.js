@@ -88,6 +88,22 @@ export const BODIES = [
           "NASA ended my mission in 2019, but I am not forgotten. Every curious kid keeps my story alive.",
         ],
       },
+      {
+        id: "ingenuity",
+        name: "Ingenuity",
+        subtitle: "Mars helicopter · landed 2021",
+        lang: "en-US",
+        lat: 12,
+        lon: 18,
+        mapX: 56,
+        mapY: 43,
+        color: "#f0c14a",
+        icon: "H",
+        story: [
+          "Hi! I'm Ingenuity, a little helicopter on Mars.",
+          "I flew in the thin air where no aircraft had flown before.",
+        ],
+      },
     ],
   },
 ];

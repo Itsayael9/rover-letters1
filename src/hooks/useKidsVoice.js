@@ -159,29 +159,42 @@ export function useKidsVoice({ readAloud = true, muted = false, onLineStart } = 
               !playing.ended &&
               playing.dataset.clip === line.audioSrc;
 
+            const startAt =
+              options.fromTime != null ? options.fromTime : line.audioStart || 0;
+            const seekToStart = (audio) => {
+              if (startAt > 0) {
+                const max = Number.isFinite(audio.duration)
+                  ? Math.max(0, audio.duration - 0.05)
+                  : startAt;
+                audio.currentTime = Math.min(startAt, max);
+              } else {
+                audio.currentTime = 0;
+              }
+            };
+
             if (!sameClip) {
               playing?.pause();
               const audio = new Audio(line.audioSrc);
               audio.dataset.clip = line.audioSrc;
               audioRef.current = audio;
-              const startAt =
-                options.fromTime != null ? options.fromTime : line.audioStart || 0;
-              const seek = () => {
-                if (startAt > 0) {
-                  const max = Number.isFinite(audio.duration) ? Math.max(0, audio.duration - 0.05) : startAt;
-                  audio.currentTime = Math.min(startAt, max);
-                }
-              };
-              if (audio.readyState >= 1) seek();
+              if (audio.readyState >= 1) seekToStart(audio);
               else {
                 await new Promise((resolve) => {
-                  audio.addEventListener("loadedmetadata", () => {
-                    seek();
-                    resolve();
-                  }, { once: true });
+                  audio.addEventListener(
+                    "loadedmetadata",
+                    () => {
+                      seekToStart(audio);
+                      resolve();
+                    },
+                    { once: true }
+                  );
                 });
               }
               if (!heldRef.current) await audio.play();
+            } else if (line.audioStart != null || options.fromTime != null) {
+              const audio = playing;
+              seekToStart(audio);
+              if (!heldRef.current) await audio.play().catch(() => {});
             }
 
             const audio = audioRef.current;
@@ -192,16 +205,23 @@ export function useKidsVoice({ readAloud = true, muted = false, onLineStart } = 
               await audio.play().catch(() => {});
             }
             const endAt = line.audioEnd ?? Number.POSITIVE_INFINITY;
+            const startAtClip = line.audioStart || 0;
+            const clipLen = Math.max(0.5, endAt - startAtClip);
+            const deadlineMs = Date.now() + (clipLen + 1.5) * 1000;
+
             const status = await new Promise((resolve, reject) => {
               const finish = (why) => {
                 window.clearInterval(timer);
                 audio.removeEventListener("ended", onEnd);
                 audio.removeEventListener("error", onErr);
+                if (line.audioEnd != null) audio.pause();
                 resolve(why);
               };
+
               const check = () => {
                 if (heldRef.current) return;
                 if (id !== runId.current) finish("stopped");
+                else if (Date.now() > deadlineMs) finish("ok");
                 else if (audio.ended || audio.currentTime + 0.08 >= endAt) finish("ok");
               };
               const onEnd = () => finish("ok");

@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Opportunity from "@/components/kids/Opportunity";
+import Ingenuity from "@/components/kids/Ingenuity";
 import MediaPanel from "@/components/kids/MediaPanel";
 import SegmentQuestion from "@/components/kids/SegmentQuestion";
 import MissionGame from "@/components/kids/MissionGame";
+import ScoutGame from "@/components/kids/ginny-game/ScoutGame";
 import { useKidsVoice } from "@/hooks/useKidsVoice";
 import { useKidsProgress } from "@/context/KidsProgressContext";
 import { useDeepDive } from "@/components/deepdive/DeepDiveContext";
@@ -64,6 +66,22 @@ function PlayMark() {
   );
 }
 
+function GameMark() {
+  return (
+    <Mark>
+      <path
+        d="M7.5 9.5h9a3 3 0 0 1 3 3v3.5a2.5 2.5 0 0 1-2.5 2.5H7.5A2.5 2.5 0 0 1 5 16V12.5a3 3 0 0 1 3-3Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M8 12h.01M11.5 11.5v3M16 12h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 8.5V7a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </Mark>
+  );
+}
+
 export default function SegmentRunner({ machine, onExit }) {
   const reduceMotion = useReducedMotion();
   const {
@@ -81,6 +99,7 @@ export default function SegmentRunner({ machine, onExit }) {
   const [media, setMedia] = useState(null);
   const [highlight, setHighlight] = useState(null);
   const [deepDivePaused, setDeepDivePaused] = useState(false);
+  const [skipGameIntro, setSkipGameIntro] = useState(false);
   const pendingStars = useRef(0);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
@@ -259,10 +278,15 @@ export default function SegmentRunner({ machine, onExit }) {
   const pose =
     phase === "lines" || phase === "follow" ? voice.currentLine?.pose || null : null;
   const spokenLine =
-    phase === "lines" && voice.currentLine ? t(voice.currentLine.text) : null;
+    phase === "lines" &&
+    voice.currentLine &&
+    (voice.active || voice.held)
+      ? t(voice.currentLine.text)
+      : null;
 
+  const isOpp = machine.id === "opportunity";
   const showReadMore =
-    phase === "lines" || phase === "follow" || phase === "question";
+    isOpp && (phase === "lines" || phase === "follow" || phase === "question");
 
   const onReadMore = () => {
     openDeepDive();
@@ -275,7 +299,31 @@ export default function SegmentRunner({ machine, onExit }) {
     useGLTF.preload(MODEL_URL);
   }, [showReadMore]);
 
+  const Character = machine.id === "ingenuity" ? Ingenuity : Opportunity;
+  const hasMiniGame = machine.id === "opportunity" || machine.id === "ingenuity";
+  const playGameLabel = t(machine.playGameLabel) || "Play the mini-game";
+
+  const goToGame = () => {
+    voice.pausePlayback();
+    setPaused(true);
+    setSkipGameIntro(true);
+    setPhase("mission");
+  };
+
   if (phase === "mission") {
+    if (machine.id === "ingenuity") {
+      return (
+        <ScoutGame
+          machineId={machine.id}
+          onExit={onExit}
+          skipIntro={skipGameIntro}
+          onBackToStory={() => {
+            setSkipGameIntro(false);
+            setPhase("invite");
+          }}
+        />
+      );
+    }
     return <MissionGame machineId={machine.id} onExit={onExit} />;
   }
 
@@ -307,6 +355,17 @@ export default function SegmentRunner({ machine, onExit }) {
           </div>
 
           <div className="kids-top-actions">
+            {hasMiniGame ? (
+              <button
+                type="button"
+                className="kids-nav-icon"
+                onClick={goToGame}
+                aria-label={playGameLabel}
+                title={playGameLabel}
+              >
+                <GameMark />
+              </button>
+            ) : null}
             {showReadMore ? (
               <button
                 type="button"
@@ -342,10 +401,24 @@ export default function SegmentRunner({ machine, onExit }) {
             </p>
             <h2>{t(machine.inviteTitle)}</h2>
             <div className="kids-invite-actions">
+              {hasMiniGame ? (
+                <button
+                  type="button"
+                  className="kids-nav-icon kids-invite-game-btn"
+                  onClick={goToGame}
+                  aria-label={playGameLabel}
+                  title={playGameLabel}
+                >
+                  <GameMark />
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="kids-btn kids-btn-primary"
-                onClick={() => setPhase("mission")}
+                onClick={() => {
+                  setSkipGameIntro(true);
+                  setPhase("mission");
+                }}
               >
                 {t(machine.inviteYes)}
               </button>
@@ -362,7 +435,9 @@ export default function SegmentRunner({ machine, onExit }) {
             animate={{ opacity: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
           >
-            <p className="kids-mars-nametag">{t(segment.title)}</p>
+            {!spokenLine ? (
+              <p className="kids-mars-nametag">{t(segment.title)}</p>
+            ) : null}
 
             <div
               className={`kids-seg-stage kids-seg-stage--mars${
@@ -371,7 +446,7 @@ export default function SegmentRunner({ machine, onExit }) {
             >
               <div className="kids-seg-opp">
                 {!archiveOpen ? (
-                  <Opportunity
+                  <Character
                     talking={voice.speaking}
                     mood={mood}
                     pose={pose}

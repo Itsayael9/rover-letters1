@@ -76,6 +76,7 @@ export const OPPORTUNITY_KIDS = {
   ),
   inviteYes: en("Yes, let's go"),
   inviteNo: en("Not now"),
+  playGameLabel: en("Play the mini-game"),
   missionControlTitle: en("Mission Control coming next"),
   missionControlBody: en(
     "Soon you will help build and launch Opp. This part is on the way!"

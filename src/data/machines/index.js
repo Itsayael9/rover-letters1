@@ -1,4 +1,5 @@
 import { OPPORTUNITY_KIDS } from "@/data/kids/opportunity";
+import { INGENUITY_KIDS } from "@/data/kids/ingenuity";
 import { SURVEYOR3_KIDS } from "@/data/kids/surveyor3";
 import { APOLLO12_KIDS } from "@/data/kids/apollo12";
 
@@ -12,6 +13,15 @@ export const MACHINES = {
     themeColor: "#f49d56",
     kids: OPPORTUNITY_KIDS,
     experience: "opportunity-segments",
+  },
+  ingenuity: {
+    id: "ingenuity",
+    name: "Ingenuity",
+    subtitle: "Mars helicopter · first powered flight",
+    planetId: "mars",
+    themeColor: "#9ad8ff",
+    kids: INGENUITY_KIDS,
+    experience: "ingenuity-segments",
   },
   "surveyor-3": {
     id: "surveyor-3",

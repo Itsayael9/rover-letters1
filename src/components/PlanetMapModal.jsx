@@ -83,7 +83,7 @@ export default function PlanetMapModal({ planet, onClose, onPick }) {
                   }`}
                   style={done ? undefined : { background: machine.color || "#FC3D21" }}
                 >
-                  {done ? "✓" : "?"}
+                  {done ? "✓" : machine.icon || "?"}
                 </span>
                 {tipId === machine.id ? (
                   <span className="absolute bottom-12 max-w-[12rem] whitespace-normal bg-white px-2 py-1 text-center text-sm font-bold text-[#1A1A1A]">

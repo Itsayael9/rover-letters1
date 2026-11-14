@@ -200,7 +200,7 @@ export default function Home() {
             {body.equipment?.length > 0 && (
               <p className="mt-3 text-sm text-white/70">
                 {body.id === "mars"
-                  ? "Tap Opportunity on Mars to land and meet the rover."
+                  ? "Tap a machine on Mars to land and meet it."
                   : body.id === "moon"
                     ? "Tap a mission pin — Surveyor 3 or Apollo 12 — to begin."
                     : t.tapMarker}
