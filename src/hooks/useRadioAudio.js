@@ -62,11 +62,13 @@ export function useRadioAudio({ enabled = true } = {}) {
   const ctxRef = useRef(null);
   const voiceRef = useRef(null);
   const [commsOn, setCommsOn] = useState(true);
-  const audioLive = enabled && commsOn && sfxEnabled;
+  const voiceLive = enabled && commsOn;
+  const sfxLive = voiceLive && sfxEnabled;
   const [talking, setTalking] = useState(false);
   const [waveLevel, setWaveLevel] = useState(0);
   const waveTimer = useRef(null);
   const runId = useRef(0);
+  const clipRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -76,17 +78,25 @@ export function useRadioAudio({ enabled = true } = {}) {
     return () => {
       cancelSpeech();
       if (waveTimer.current) clearInterval(waveTimer.current);
-      ctxRef.current?.close?.();
+      const ctx = ctxRef.current;
+      ctxRef.current = null;
+      if (ctx && ctx.state !== "closed") {
+        void ctx.close().catch(() => {});
+      }
     };
   }, []);
 
   const ensureCtx = useCallback(() => {
-    if (!audioLive) return null;
+    if (!sfxLive) return null;
     if (!ctxRef.current) ctxRef.current = getCtx();
     const ctx = ctxRef.current;
-    if (ctx?.state === "suspended") void ctx.resume();
-    return ctx;
-  }, [audioLive]);
+    if (!ctx || ctx.state === "closed") {
+      ctxRef.current = getCtx();
+    }
+    const live = ctxRef.current;
+    if (live?.state === "suspended") void live.resume();
+    return live;
+  }, [sfxLive]);
 
   const startWave = useCallback(() => {
     if (waveTimer.current) clearInterval(waveTimer.current);
@@ -180,15 +190,87 @@ export function useRadioAudio({ enabled = true } = {}) {
     });
   }, [ensureCtx]);
 
+  const playClip = useCallback(
+    async (src, { lineCount = 1, onLineIndex, beeps = true } = {}) => {
+      const id = ++runId.current;
+      if (!src) return;
+      cancelSpeech();
+      if (clipRef.current) {
+        clipRef.current.pause();
+        clipRef.current = null;
+      }
+      if (!voiceLive) {
+        await new Promise((r) => setTimeout(r, 12000));
+        return;
+      }
+      const audio = new Audio(src);
+      clipRef.current = audio;
+      setTalking(true);
+      startWave();
+      if (beeps && sfxLive) playQuindarBeep("in");
+
+      const syncLines = () => {
+        if (id !== runId.current || !onLineIndex) return;
+        const d = audio.duration;
+        if (!Number.isFinite(d) || d <= 0) return;
+        const idx = Math.min(lineCount - 1, Math.floor((audio.currentTime / d) * lineCount));
+        onLineIndex(idx);
+      };
+
+      try {
+        await new Promise((resolve, reject) => {
+          let raf = 0;
+          const tick = () => {
+            if (id !== runId.current) return;
+            syncLines();
+            if (!audio.paused && !audio.ended) raf = requestAnimationFrame(tick);
+          };
+          const cleanup = () => {
+            if (raf) cancelAnimationFrame(raf);
+            audio.removeEventListener("ended", onEnd);
+            audio.removeEventListener("error", onErr);
+          };
+          const onEnd = () => {
+            cleanup();
+            resolve();
+          };
+          const onErr = () => {
+            cleanup();
+            reject(new Error("clip"));
+          };
+          audio.addEventListener("ended", onEnd);
+          audio.addEventListener("error", onErr);
+          audio.addEventListener("loadedmetadata", () => {
+            syncLines();
+            raf = requestAnimationFrame(tick);
+          });
+          void audio.play().catch(reject);
+        });
+      } catch {
+        /* blocked */
+      }
+      if (id !== runId.current) return;
+      if (beeps && sfxLive) playQuindarBeep("out");
+      setTalking(false);
+      stopWave();
+      clipRef.current = null;
+    },
+    [voiceLive, sfxLive, playQuindarBeep, startWave, stopWave]
+  );
+
   const speakRadio = useCallback(
-    async (text, { pitch = DEFAULT_PITCH, rate = DEFAULT_RATE, beeps = true } = {}) => {
+    async (text, { src, pitch = DEFAULT_PITCH, rate = DEFAULT_RATE, beeps = true, lineCount, onLineIndex } = {}) => {
+      if (src && voiceLive) {
+        await playClip(src, { lineCount, onLineIndex, beeps });
+        return;
+      }
       const id = ++runId.current;
       if (!text) return;
       setTalking(true);
       startWave();
-      if (beeps && audioLive) playQuindarBeep("in");
+      if (beeps && sfxLive) playQuindarBeep("in");
       try {
-        if (audioLive && typeof window !== "undefined" && "speechSynthesis" in window) {
+        if (voiceLive && typeof window !== "undefined" && "speechSynthesis" in window) {
           await speakLine(text, { voice: voiceRef.current, pitch, rate });
         } else {
           await new Promise((r) => setTimeout(r, Math.min(8000, 400 + text.length * 45)));
@@ -197,16 +279,35 @@ export function useRadioAudio({ enabled = true } = {}) {
         /* muted or blocked */
       }
       if (id !== runId.current) return;
-      if (beeps && audioLive) playQuindarBeep("out");
+      if (beeps && sfxLive) playQuindarBeep("out");
       setTalking(false);
       stopWave();
     },
-    [audioLive, playQuindarBeep, startWave, stopWave]
+    [voiceLive, sfxLive, playClip, playQuindarBeep, startWave, stopWave]
   );
+
+  const pauseClip = useCallback(() => {
+    clipRef.current?.pause();
+    cancelSpeech();
+    setTalking(false);
+    stopWave();
+  }, [stopWave]);
+
+  const resumeClip = useCallback(() => {
+    const audio = clipRef.current;
+    if (!audio || audio.ended) return;
+    setTalking(true);
+    startWave();
+    void audio.play().catch(() => {});
+  }, [startWave]);
 
   const stopRadio = useCallback(() => {
     runId.current += 1;
     cancelSpeech();
+    if (clipRef.current) {
+      clipRef.current.pause();
+      clipRef.current = null;
+    }
     setTalking(false);
     stopWave();
   }, [stopWave]);
@@ -222,6 +323,9 @@ export function useRadioAudio({ enabled = true } = {}) {
     playScanPing,
     playSuccessChime,
     speakRadio,
+    playClip,
+    pauseClip,
+    resumeClip,
     stopRadio,
   };
 }
