@@ -1,5 +1,6 @@
 "use client";
 import LangSwitch from "@/components/LangSwitch";
+import "@/components/certificate/certificate.css";
 
 export function MapLogo({ className = "h-7 w-7" }) {
   return (
@@ -11,7 +12,12 @@ export function MapLogo({ className = "h-7 w-7" }) {
   );
 }
 
-export default function SiteHeader({ title = "The Quiet Machines", onMap }) {
+export default function SiteHeader({
+  title = "The Quiet Machines",
+  onMap,
+  onCertificate,
+  certificateUnlocked = false,
+}) {
   return (
     <header className="absolute inset-x-0 top-0 z-50 h-16 bg-black text-white">
       <div className="relative mx-auto flex h-full max-w-[1400px] items-center justify-between px-4 md:px-6">
@@ -28,7 +34,14 @@ export default function SiteHeader({ title = "The Quiet Machines", onMap }) {
           ) : null}
           <p className="text-sm font-semibold tracking-wide">{title}</p>
         </div>
-        <LangSwitch />
+        <div className="flex items-center gap-2">
+          {onCertificate ? (
+            <button type="button" className="cert-header-btn" onClick={onCertificate}>
+              {certificateUnlocked ? "My Certificate" : "Preview Certificate"}
+            </button>
+          ) : null}
+          <LangSwitch />
+        </div>
       </div>
     </header>
   );

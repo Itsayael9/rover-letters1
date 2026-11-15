@@ -2,6 +2,7 @@ import { OPPORTUNITY_KIDS } from "@/data/kids/opportunity";
 import { INGENUITY_KIDS } from "@/data/kids/ingenuity";
 import { SURVEYOR3_KIDS } from "@/data/kids/surveyor3";
 import { APOLLO12_KIDS } from "@/data/kids/apollo12";
+import { VIKING_KIDS } from "@/data/kids/viking-kids";
 
 /** Central registry — map pins, kids data, and future machine components. */
 export const MACHINES = {
@@ -22,6 +23,15 @@ export const MACHINES = {
     themeColor: "#9ad8ff",
     kids: INGENUITY_KIDS,
     experience: "ingenuity-segments",
+  },
+  "viking-1": {
+    id: "viking-1",
+    name: "Viking 1",
+    subtitle: "Mars lander · landed 1976",
+    planetId: "mars",
+    themeColor: "#6BB5FF",
+    kids: VIKING_KIDS,
+    experience: "viking-segments",
   },
   "surveyor-3": {
     id: "surveyor-3",

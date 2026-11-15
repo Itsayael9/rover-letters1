@@ -5,4 +5,6 @@ export {
   useProgress,
   machineIds,
   planetUnlocked,
+  certificateMachineList,
+  allMachinesComplete,
 } from "@/store/progress";
