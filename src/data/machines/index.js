@@ -49,7 +49,7 @@ export const MACHINES = {
   "apollo-12": {
     id: "apollo-12",
     name: "Apollo 12 (Intrepid)",
-    subtitle: "Crewed Lunar Module · Nov 1969",
+    subtitle: "Part of the Surveyor 3 Moon mission",
     planetId: "moon",
     lat: -3.01,
     lon: -23.42,

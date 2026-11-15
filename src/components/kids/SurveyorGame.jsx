@@ -7,6 +7,7 @@ import SurveyorGameBeat from "@/components/kids/surveyor/SurveyorGameBeat";
 import { useRadioAudio } from "@/hooks/useRadioAudio";
 import { useProgress } from "@/store/progress";
 import { SURVEYOR3_KIDS } from "@/data/kids/surveyor3";
+import { GAME_BEAT_AUDIO } from "@/data/kids/surveyor3Playback";
 
 const CALL = SURVEYOR3_KIDS.radioCallouts;
 const BEATS = SURVEYOR3_KIDS.gameBeats;
@@ -57,7 +58,7 @@ function Tele({ k, v }) {
   );
 }
 
-export default function SurveyorGame({ onExit, onCompleteCelebration, onContinueApollo12 }) {
+export default function SurveyorGame({ onExit, onCompleteCelebration }) {
   const radio = useRadioAudio();
   const { completeMachine } = useProgress();
   const [phase, setPhase] = useState("search");
@@ -91,8 +92,12 @@ export default function SurveyorGame({ onExit, onCompleteCelebration, onContinue
   const openBeat = useCallback(
     (key) => {
       setBeatOpen(key);
-      const beat = BEATS[key];
-      if (beat?.voice && CALL[beat.voice]) void radio.speakRadio(CALL[beat.voice]);
+      const src = GAME_BEAT_AUDIO[key];
+      if (src) void radio.playClip(src);
+      else {
+        const beat = BEATS[key];
+        if (beat?.voice && CALL[beat.voice]) void radio.speakRadio(CALL[beat.voice]);
+      }
     },
     [radio]
   );
@@ -126,7 +131,8 @@ export default function SurveyorGame({ onExit, onCompleteCelebration, onContinue
   const runDig = useCallback(() => {
     controlRef.current.digHeld = true;
     setBusy(true);
-  }, []);
+    radio.playServoDig();
+  }, [radio]);
 
   const runScan = useCallback(() => {
     controlRef.current.scanHeld = true;
@@ -193,7 +199,8 @@ export default function SurveyorGame({ onExit, onCompleteCelebration, onContinue
         celebrated.current = true;
         completeMachine("surveyor-3");
         onCompleteCelebration?.();
-        void radio.speakRadio(CALL.stage3Success);
+        if (GAME_BEAT_AUDIO.flag) void radio.playClip(GAME_BEAT_AUDIO.flag);
+        else void radio.speakRadio(CALL.stage3Success);
       }
       return "complete";
     });
@@ -324,14 +331,12 @@ export default function SurveyorGame({ onExit, onCompleteCelebration, onContinue
               🇺🇸
             </p>
             <h2>Flag on the Moon</h2>
-            <p>You scouted the pad, dug the soil, shot a panorama, called Apollo 12, watched Intrepid land, and planted the flag.</p>
+            <p>
+              You scouted the pad, dug the soil, shot a panorama, called Apollo 12, watched Intrepid land, and planted the
+              flag. Apollo 12 and Surveyor 3 are one Moon mission — you just finished it.
+            </p>
             <div className="kids-invite-actions">
-              {onContinueApollo12 ? (
-                <button type="button" className="kids-btn kids-btn-primary" onClick={onContinueApollo12}>
-                  Continue to Apollo 12
-                </button>
-              ) : null}
-              <button type="button" className="kids-btn kids-btn-ghost" onClick={onExit}>
+              <button type="button" className="kids-btn kids-btn-primary" onClick={onExit}>
                 Back to the Moon
               </button>
             </div>

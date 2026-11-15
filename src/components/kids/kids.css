@@ -1368,8 +1368,10 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: url("/textures/moon.jpg") center 38% / cover no-repeat;
+  background: url("/textures/moon.jpg") center 22% / auto 118% no-repeat;
   pointer-events: none;
+  transform: scale(1.02);
+  transform-origin: center 18%;
 }
 
 .kids-seg--on-moon .kids-seg-top,
@@ -1384,15 +1386,51 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 40%;
+  top: 42%;
   bottom: 0;
   z-index: 1;
   pointer-events: none;
   background: linear-gradient(
     transparent 0%,
-    rgba(48, 48, 54, 0.32) 28%,
-    rgba(22, 22, 28, 0.68) 100%
+    rgba(40, 40, 48, 0.28) 26%,
+    rgba(18, 18, 24, 0.78) 100%
   );
+}
+
+.kids-seg--on-moon .kids-seg-main--mars {
+  justify-content: flex-end;
+}
+
+.kids-seg-stage--moon.is-solo {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: min(52dvh, 520px);
+  padding-bottom: 0;
+}
+
+.kids-seg-stage--moon.is-solo .kids-seg-opp {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: min(82vw, 560px);
+  max-height: min(56dvh, 540px);
+}
+
+.kids-seg-stage--moon.is-quiz.is-solo {
+  min-height: min(44dvh, 420px);
+  max-height: min(48dvh, 460px);
+}
+
+.kids-seg--on-moon .kids-mars-panel {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: min(100%, 38rem);
+  margin: 0 auto;
+  padding-bottom: 6px;
 }
 
 .kids-seg--on-moon .kids-dot.is-current {
@@ -2439,6 +2477,42 @@
   border: 3px solid #3a2a24;
   box-shadow: 0 8px 0 #3a2a24;
   pointer-events: none;
+}
+
+.s3-3d-hud .s3-hud-btn.kids-btn-primary,
+.s3-beat-continue.kids-btn-primary {
+  min-height: 48px;
+  min-width: 11.5rem;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 2.5px solid #3a2a24;
+  background: #111;
+  color: #fffaf3;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 5px 0 #3a2a24;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.s3-3d-hud .s3-hud-btn.kids-btn-primary:hover:not(:disabled),
+.s3-beat-continue.kids-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 0 #3a2a24;
+  background: #1a1a1a;
+}
+
+.s3-3d-hud .s3-hud-btn.kids-btn-primary:active:not(:disabled),
+.s3-beat-continue.kids-btn-primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #3a2a24;
+}
+
+.s3-3d-hud .s3-hud-btn.kids-btn-primary:disabled {
+  opacity: 0.55;
+  background: #5a5a5a;
+  box-shadow: 0 5px 0 #2a2a2a;
+  cursor: not-allowed;
 }
 
 .s3-3d-controls:empty {
