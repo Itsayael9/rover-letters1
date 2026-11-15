@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import { BODIES } from "@/data/bodies";
+import { getBodyWorldPosition, moonOrbitOffset } from "@/lib/lunarOrbit";
 import MoonSurface from "@/components/MoonSurface";
 import MarsSurface from "@/components/MarsSurface";
 
@@ -266,6 +267,33 @@ function BodyLabel({ name, rtl }) {
   );
 }
 
+function OrbitingBody({ body, parentBody, paused, children }) {
+  const mount = useRef();
+  const reduceMotion = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
+
+  useEffect(() => {
+    if (!mount.current || !body.orbit) return;
+    mount.current.position.copy(moonOrbitOffset(body.orbit, 0));
+  }, [body]);
+
+  useFrame((state) => {
+    if (paused || !mount.current || !body.orbit) return;
+    const rate = reduceMotion ? 0.35 : 1;
+    mount.current.position.copy(moonOrbitOffset(body.orbit, state.clock.elapsedTime * rate));
+  });
+
+  return (
+    <group position={parentBody.position}>
+      <group ref={mount}>{children}</group>
+    </group>
+  );
+}
+
 function Planet({ body, selected, onSelect, markerEls, faceMarkers = false, name, rtl, onPlanetHover }) {
   const spin = useRef();
   const meshRef = useRef();
@@ -417,7 +445,7 @@ function CameraRig({
       startPos.current.copy(camera.position);
       startTarget.current.copy(controls.target);
 
-      goalTarget.current.set(...body.position);
+      goalTarget.current.copy(getBodyWorldPosition(body, BODIES, 0));
 
       goalPos.current
         .copy(goalTarget.current)
@@ -459,7 +487,7 @@ function CameraRig({
     );
 
     if (body) {
-      const position = new THREE.Vector3(...body.position);
+      const position = getBodyWorldPosition(body, BODIES, 0);
 
       goalTarget.current.copy(position);
 
@@ -512,6 +540,25 @@ function CameraRig({
 
   useFrame((state, delta) => {
     if (!controls) return;
+
+    const body = selected ? BODIES.find((item) => item.id === selected) : null;
+
+    const orbitRate =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? 0.35
+        : 1;
+
+    if (body?.orbit) {
+      const world = getBodyWorldPosition(body, BODIES, state.clock.elapsedTime * orbitRate);
+      goalTarget.current.copy(world);
+      if (view === "space" && animating.current) {
+        goalPos.current.copy(world).add(new THREE.Vector3(0, 0, body.size * 3.2));
+      }
+      if (view === "approaching" && phase.current === "approach") {
+        goalPos.current.copy(world).add(new THREE.Vector3(0, 0, body.size + 0.08));
+      }
+    }
 
     if (
       view === "approaching" &&
@@ -724,7 +771,7 @@ export default function SpaceScene({
             <Suspense fallback={null}>
               <SpaceBackground />
 
-              {BODIES.map((body) => (
+              {BODIES.filter((body) => !body.orbit).map((body) => (
                 <Planet
                   key={body.id}
                   body={body}
@@ -737,6 +784,28 @@ export default function SpaceScene({
                   onPlanetHover={onPlanetHover}
                 />
               ))}
+
+              {BODIES.filter((body) => body.orbit).map((body) => {
+                const parent = BODIES.find((b) => b.id === body.orbit.parentId);
+                if (!parent) return null;
+
+                const moonBody = { ...body, position: [0, 0, 0] };
+
+                return (
+                  <OrbitingBody key={body.id} body={body} parentBody={parent} paused={paused}>
+                    <Planet
+                      body={moonBody}
+                      selected={selected}
+                      onSelect={handlePlanetSelect}
+                      markerEls={markerEls}
+                      faceMarkers={view === "space" && selected === body.id}
+                      name={names[body.id]}
+                      rtl={rtl}
+                      onPlanetHover={onPlanetHover}
+                    />
+                  </OrbitingBody>
+                );
+              })}
             </Suspense>
           </>
         )}
