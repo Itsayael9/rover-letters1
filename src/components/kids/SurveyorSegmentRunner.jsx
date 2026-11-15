@@ -8,6 +8,8 @@ import MediaPanel from "@/components/kids/MediaPanel";
 import SegmentQuestion from "@/components/kids/SegmentQuestion";
 import { useRadioAudio } from "@/hooks/useRadioAudio";
 import { useKidsProgress } from "@/context/KidsProgressContext";
+import { STORY_CLIPS, QUIZ_AUDIO } from "@/data/kids/surveyor3Playback";
+import { SURVEYOR3_AUDIO } from "@/data/kids/surveyor3Audio";
 
 function Mark({ children }) {
   return (
@@ -79,7 +81,7 @@ export default function SurveyorSegmentRunner({
   machine,
   onExit,
   onCompleteCelebration,
-  onContinueApollo12,
+  showApolloCompanion = false,
 }) {
   const reduceMotion = useReducedMotion();
   const { ready, segmentIndex, setSegmentIndex, completedSegments, markSegmentComplete, saveAnswer } =
@@ -99,52 +101,89 @@ export default function SurveyorSegmentRunner({
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
-  const speak = radio.speakRadio;
   const stop = radio.stopRadio;
+  const storyRun = useRef(0);
+  const quizStarted = useRef("");
 
   useEffect(() => {
     if (!ready || phase !== "lines" || !segment || paused) return undefined;
-    const line = segment.lines[lineCursor];
-    if (!line) {
-      setPhase("question");
-      return undefined;
-    }
+    const blocks = STORY_CLIPS[segment.id];
+    if (!blocks?.length) return undefined;
 
+    const run = ++storyRun.current;
     let cancelled = false;
-    let timer = 0;
-    let finishDwell = () => {};
-    const dwell = new Promise((resolve) => {
-      finishDwell = resolve;
-      const ms = Math.min(6200, 1500 + line.text.length * 28);
-      timer = window.setTimeout(resolve, ms);
-    });
+    setLineCursor(0);
+
     (async () => {
-      await Promise.all([speak(line.text), dwell]);
-      if (cancelled || phaseRef.current !== "lines") return;
-      if (lineCursor < segment.lines.length - 1) setLineCursor((c) => c + 1);
-      else setPhase("question");
+      let lineOffset = 0;
+      for (const block of blocks) {
+        if (cancelled || run !== storyRun.current) return;
+        await radio.playClip(block.src, {
+          lineCount: block.lineCount,
+          onLineIndex: (local) => setLineCursor(lineOffset + local),
+        });
+        lineOffset += block.lineCount;
+      }
+      if (!cancelled && run === storyRun.current && phaseRef.current === "lines") {
+        setPhase("question");
+      }
     })();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
-      finishDwell();
       stop();
     };
-  }, [ready, segment?.id, phase, lineCursor, paused, speak, stop, segment]);
+  }, [ready, segment?.id, phase, paused, radio, stop]);
+
+  useEffect(() => {
+    if (paused) radio.pauseClip();
+    else radio.resumeClip();
+  }, [paused, radio]);
+
+  useEffect(() => {
+    if (phase !== "question") quizStarted.current = "";
+  }, [phase]);
+
+  useEffect(() => {
+    if (!ready || phase !== "question" || !segment || paused) return undefined;
+    if (quizStarted.current === segment.id) return undefined;
+    const src = QUIZ_AUDIO[segment.id];
+    if (!src) return undefined;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      quizStarted.current = segment.id;
+      void radio.playClip(src);
+    }, 80);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [ready, phase, segment?.id, paused, radio]);
 
   useEffect(() => {
     if (!ready || phase !== "follow" || !followLine || paused) return undefined;
     let cancelled = false;
     (async () => {
-      await speak(followLine);
+      await radio.speakRadio(followLine);
       if (!cancelled && phaseRef.current === "follow") setPhase("ready");
     })();
     return () => {
       cancelled = true;
       stop();
     };
-  }, [ready, phase, followLine, paused, speak, stop]);
+  }, [ready, phase, followLine, paused, radio, stop]);
+
+  const invitePlayed = useRef(false);
+  useEffect(() => {
+    if (phase !== "invite") invitePlayed.current = false;
+  }, [phase]);
+  useEffect(() => {
+    if (phase !== "invite" || paused || invitePlayed.current) return undefined;
+    invitePlayed.current = true;
+    void radio.playClip(SURVEYOR3_AUDIO.story.invite);
+    return () => stop();
+  }, [phase, paused, radio, stop]);
 
   const finishSegment = useCallback(() => {
     if (segment && !completedSegments.includes(segment.id)) {
@@ -197,6 +236,7 @@ export default function SurveyorSegmentRunner({
   };
 
   const skipVoice = () => {
+    storyRun.current += 1;
     setPaused(false);
     stop();
     if (phase === "lines") setPhase("question");
@@ -220,10 +260,12 @@ export default function SurveyorSegmentRunner({
   };
 
   const togglePause = () => {
-    if (paused) setPaused(false);
-    else {
+    if (paused) {
+      setPaused(false);
+      radio.resumeClip();
+    } else {
       setPaused(true);
-      stop();
+      radio.pauseClip();
     }
   };
 
@@ -246,17 +288,14 @@ export default function SurveyorSegmentRunner({
         animate={{ opacity: 1 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
       >
-        <SurveyorGame
-          onExit={onExit}
-          onCompleteCelebration={onCompleteCelebration}
-          onContinueApollo12={onContinueApollo12}
-        />
+        <SurveyorGame onExit={onExit} onCompleteCelebration={onCompleteCelebration} />
       </motion.div>
     );
   }
 
   return (
     <div className="kids-seg kids-seg--on-moon">
+      <div className="kids-moon-horizon" aria-hidden="true" />
       <div className="kids-moon-fade" aria-hidden="true" />
 
       <header className="kids-seg-top">
@@ -329,9 +368,18 @@ export default function SurveyorSegmentRunner({
             animate={{ opacity: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
           >
-            <p className="kids-mars-nametag">{segment.title}</p>
+            <p className="kids-mars-nametag">
+              {segment.title}
+              {showApolloCompanion ? (
+                <span className="s3-companion-tag"> · Apollo 12 is in this same story</span>
+              ) : null}
+            </p>
 
-            <div className={`kids-seg-stage kids-seg-stage--mars${media ? " has-media" : " is-solo"}`}>
+            <div
+              className={`kids-seg-stage kids-seg-stage--mars kids-seg-stage--moon${media ? " has-media" : " is-solo"}${
+                phase === "question" || phase === "follow" ? " is-quiz" : ""
+              }`}
+            >
               <div className="kids-seg-opp">
                 <Surveyor3
                   talking={radio.talking && !paused}

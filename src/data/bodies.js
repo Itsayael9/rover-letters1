@@ -40,7 +40,7 @@ export const BODIES = [
       {
         id: "apollo-12",
         name: "Apollo 12 (Intrepid)",
-        subtitle: "Crewed Lunar Module · Nov 1969",
+        subtitle: "Same crater story as Surveyor 3 · Nov 1969",
         lang: "en-US",
         lat: 5.5,
         lon: -12.0,

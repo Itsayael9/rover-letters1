@@ -150,8 +150,13 @@ function Scoop({ digging }) {
   const arm = useRef();
   useFrame(({ clock }) => {
     if (!arm.current) return;
-    const dig = digging.current ? -0.85 + Math.sin(clock.elapsedTime * 5.2) * 0.18 : -0.15;
-    arm.current.rotation.z += (dig - arm.current.rotation.z) * 0.12;
+    const t = clock.elapsedTime;
+    const dig = digging.current
+      ? -1.05 + Math.sin(t * 5.4) * 0.22
+      : -0.12 + Math.sin(t * 0.7) * 0.03;
+    const reach = digging.current ? Math.sin(t * 3.1) * 0.08 : 0;
+    arm.current.rotation.z += (dig - arm.current.rotation.z) * 0.14;
+    arm.current.rotation.x += (reach - arm.current.rotation.x) * 0.16;
   });
   return (
     <group ref={arm} position={[0.48, 0.62, 0.1]}>
@@ -168,15 +173,20 @@ function Scoop({ digging }) {
 }
 
 export default function SurveyorLander3D({ stateRef }) {
+  const root = useRef();
   const digging = useRef(false);
   const legs = useMemo(() => [0.4, 0.4 + (Math.PI * 2) / 3, 0.4 + (Math.PI * 4) / 3], []);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     digging.current = Boolean(stateRef?.current?.digging);
+    if (!root.current) return;
+    const lean = digging.current ? Math.sin(clock.elapsedTime * 4.2) * 0.035 : 0;
+    root.current.rotation.x += (lean - root.current.rotation.x) * 0.12;
+    root.current.rotation.z = digging.current ? Math.sin(clock.elapsedTime * 2.6) * 0.02 : 0;
   });
 
   return (
-    <group scale={1.25}>
+    <group ref={root} scale={1.25}>
       <Frame legs={legs} />
       {legs.map((angle) => (
         <Leg key={angle} angle={angle} />

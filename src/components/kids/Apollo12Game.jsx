@@ -8,6 +8,7 @@ import LunarSurface from "@/components/kids/LunarSurface";
 import { useRadioAudio } from "@/hooks/useRadioAudio";
 import { useProgress } from "@/store/progress";
 import { APOLLO12_KIDS } from "@/data/kids/apollo12";
+import { APOLLO12_AUDIO } from "@/data/kids/surveyor3Playback";
 
 const CALL = APOLLO12_KIDS.radioCallouts;
 const THEME = APOLLO12_KIDS.themeColor;
@@ -89,12 +90,11 @@ export default function Apollo12Game({ onExit, onCompleteCelebration }) {
   useEffect(() => {
     if (intro.current) return;
     intro.current = true;
-    void radio.speakRadio(CALL.intro);
+    void radio.playClip(APOLLO12_AUDIO.walk);
   }, [radio]);
 
   const onArrive = useCallback(async () => {
-    await radio.speakRadio(CALL.siteApproach);
-    await radio.speakRadio(CALL.apollo12Quote, { rate: 1.02, pitch: 1.05 });
+    await radio.playClip(APOLLO12_AUDIO.quote);
     setPhase("at-surveyor");
   }, [radio]);
 
@@ -112,7 +112,7 @@ export default function Apollo12Game({ onExit, onCompleteCelebration }) {
         completeMachine("apollo-12");
         onCompleteCelebration?.();
       }
-      void radio.speakRadio(CALL.finale);
+      void radio.playClip(APOLLO12_AUDIO.finale);
       setPhase("finale");
     } else {
       setPhase("at-surveyor");
