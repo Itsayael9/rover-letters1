@@ -7,6 +7,8 @@ import { useLang } from "@/context/LangContext";
 import Intro from "@/components/Intro";
 import Captions from "@/components/Captions";
 import SiteHeader, { MapLogo } from "@/components/SiteHeader";
+import CertificateModal from "@/components/certificate/CertificateModal";
+import { allMachinesComplete, useProgress } from "@/state/progress";
 import PlanetMapModal from "@/components/PlanetMapModal";
 import SfxToggle from "@/components/SfxToggle";
 import { useSpaceAudio } from "@/hooks/useSpaceAudio";
@@ -68,6 +70,9 @@ export default function Home() {
     bodyMachines.some((machine) => machine.id === open?.equipId);
   const moonSiteVisit = siteVisit && open?.bodyId === "moon";
   const [mapOpen, setMapOpen] = useState(false);
+  const [certOpen, setCertOpen] = useState(false);
+  const { completedMachines, ready: progressReady } = useProgress();
+  const certificateUnlocked = progressReady && allMachinesComplete(completedMachines);
   const showKids = Boolean(item && onSurface);
 
   const openMission = (machine) => {
@@ -170,7 +175,12 @@ export default function Home() {
         ))}
 
       {introDone && !showKids && !item && (
-        <SiteHeader title={t.site} onMap={body ? () => setMapOpen(true) : null} />
+        <SiteHeader
+          title={t.site}
+          onMap={body ? () => setMapOpen(true) : null}
+          onCertificate={() => setCertOpen(true)}
+          certificateUnlocked={certificateUnlocked}
+        />
       )}
 
       {introDone && body && item && !showKids && (
@@ -215,6 +225,8 @@ export default function Home() {
           </button>
         </div>
       )}
+
+      {certOpen ? <CertificateModal open={certOpen} onClose={() => setCertOpen(false)} /> : null}
 
       {mapOpen && body && (
         <PlanetMapModal

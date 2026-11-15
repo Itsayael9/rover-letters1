@@ -9,6 +9,21 @@ export function machineIds() {
   return BODIES.flatMap((body) => (body.equipment ?? []).map((machine) => machine.id));
 }
 
+export function certificateMachineList() {
+  return BODIES.flatMap((body) =>
+    (body.equipment ?? []).map((machine) => ({
+      id: machine.id,
+      name: machine.name,
+    }))
+  );
+}
+
+export function allMachinesComplete(completedMachines) {
+  const required = machineIds();
+  if (!required.length) return false;
+  return required.every((id) => completedMachines.includes(id));
+}
+
 /** Free exploration — every planet is always visitable. */
 export function planetUnlocked(planetId) {
   void planetId;
