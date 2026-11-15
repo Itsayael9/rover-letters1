@@ -28,13 +28,6 @@ export default function SiteHeader({ title = "The Quiet Machines", onMap }) {
           ) : null}
           <p className="text-sm font-semibold tracking-wide">{title}</p>
         </div>
-        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <img
-            src="/textures/nasa-logo.webp"
-            alt="NASA"
-            className="h-11 w-auto"
-          />
-        </div>
         <LangSwitch />
       </div>
     </header>

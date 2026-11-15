@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { MISSION_SOURCES } from "@/data/opportunityDeepDive";
+import { MISSION_SOURCES as DEFAULT_MISSION_SOURCES } from "@/data/opportunityDeepDive";
 import { useDeepDive } from "./DeepDiveContext";
 import { pickActiveSectionId } from "./missionScrollSync";
 import GlossaryTerm from "./GlossaryTerm";
 import { tokenizeParagraph } from "./missionRichText";
 
-function resolveSource(ref) {
-  const full = MISSION_SOURCES.find((s) => s.code === ref.code);
+function resolveSource(ref, missionSources) {
+  const full = missionSources.find((s) => s.code === ref.code);
   if (!full) return null;
   return full;
 }
@@ -45,12 +45,12 @@ function Paragraph({ parts, onTrigger }) {
   );
 }
 
-function SectionSources({ refs }) {
+function SectionSources({ refs, missionSources }) {
   if (!refs?.length) return null;
   return (
     <div className="mission-sources-inline">
       {refs.map((ref) => {
-        const src = resolveSource(ref);
+        const src = resolveSource(ref, missionSources);
         if (!src) return null;
         return (
           <a
@@ -81,7 +81,7 @@ function SectionFigure({ image }) {
   );
 }
 
-function SectionArticle({ section, onTrigger }) {
+function SectionArticle({ section, onTrigger, missionSources }) {
   const inlineAfter =
     typeof section.imageAfterParagraph === "number" ? section.imageAfterParagraph : null;
   const showImageAtEnd = section.image && inlineAfter === null;
@@ -133,13 +133,13 @@ function SectionArticle({ section, onTrigger }) {
         </div>
       ) : null}
 
-      <SectionSources refs={section.sources} />
+      <SectionSources refs={section.sources} missionSources={missionSources} />
     </article>
   );
 }
 
 /** Scrollable mission archive with section observer → 3D sync. */
-export default function MissionArchivePanel({ sections }) {
+export default function MissionArchivePanel({ sections, missionSources = DEFAULT_MISSION_SOURCES }) {
   const scrollRef = useRef(null);
   const lastSectionRef = useRef(null);
   const {
@@ -207,7 +207,12 @@ export default function MissionArchivePanel({ sections }) {
 
       <div ref={scrollRef} className="mission-scroll">
         {sections.map((section) => (
-          <SectionArticle key={section.id} section={section} onTrigger={fireTrigger} />
+          <SectionArticle
+            key={section.id}
+            section={section}
+            onTrigger={fireTrigger}
+            missionSources={missionSources}
+          />
         ))}
 
         <p className="mission-model-footer">
@@ -217,7 +222,7 @@ export default function MissionArchivePanel({ sections }) {
         <section className="mission-documentation" aria-labelledby="mission-docs-title">
           <h4 id="mission-docs-title">Mission documentation / official sources</h4>
           <div className="mission-sources-inline">
-            {MISSION_SOURCES.map((src) => (
+            {missionSources.map((src) => (
               <a
                 key={src.code}
                 className="mission-source-link"

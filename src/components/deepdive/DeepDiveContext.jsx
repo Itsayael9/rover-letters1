@@ -13,6 +13,7 @@ export function DeepDiveProvider({ children }) {
   const [userCameraActive, setUserCameraActive] = useState(false);
   const [cameraSyncKey, setCameraSyncKey] = useState(0);
   const [nasaRoverReady, setNasaRoverReady] = useState(false);
+  const [archiveKind, setArchiveKind] = useState("opportunity");
   const onCloseRef = useRef(null);
   const userDriveRef = useRef(false);
   const scrollRootRef = useRef(null);
@@ -50,7 +51,8 @@ export function DeepDiveProvider({ children }) {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const open = useCallback(() => {
+  const open = useCallback((kind = "opportunity") => {
+    setArchiveKind(kind === "ingenuity" ? "ingenuity" : "opportunity");
     setActiveSectionId("introduction");
     setActiveTrigger(null);
     setUserCameraActive(false);
@@ -105,6 +107,7 @@ export function DeepDiveProvider({ children }) {
       bumpCameraSync,
       nasaRoverReady,
       setNasaRoverReady,
+      archiveKind,
     }),
     [
       isOpen,
@@ -124,6 +127,7 @@ export function DeepDiveProvider({ children }) {
       cameraSyncKey,
       bumpCameraSync,
       nasaRoverReady,
+      archiveKind,
     ]
   );
 

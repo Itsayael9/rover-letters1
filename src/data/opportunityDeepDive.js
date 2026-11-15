@@ -31,6 +31,11 @@ export const MISSION_SOURCES = [
     label: "NASA Science — MER Spirit",
     url: "https://science.nasa.gov/mission/mer-spirit/",
   },
+  {
+    code: "005",
+    label: "NASA Science — Perseverance surpasses Opportunity distance record (Oct. 11, 2026)",
+    url: "https://science.nasa.gov/blog/tracks-along-the-longest-drive-on-another-world/",
+  },
 ];
 
 const sections = [
@@ -45,6 +50,7 @@ const sections = [
       "Its twin rover, Spirit, had landed three weeks earlier on the other side of Mars. Both were part of the same Mars Exploration Rovers project—two scouts, two stories.",
       "The rover bounced inside {{eagleCrater}}, unfolded, and sent home proof that {{meridianiPlanum}} held a different past than today’s dusty plains.",
       "That “90-day” ticket turned into more than 14 years, 45.16 km of driving, and 217,000+ images—about 60 times longer than designed. Opportunity is about the size of a golf cart; its name came from a school essay contest won by a 9-year-old. It also survived a huge planet-wide dust storm in 2007—years before the even darker storm of 2018.",
+      "Some outreach graphics show about 300,000 images for the Mars Exploration Rovers—that total is for Spirit and Opportunity together. This archive uses 217,000+ for Opportunity alone, matching NASA’s Opportunity mission totals (see source 002) unless that source is updated.",
     ],
     telemetry: [
       { label: "Planned mission", value: "90", unit: "SOLS" },
@@ -225,6 +231,7 @@ const sections = [
       "Opportunity proved that a mobile lab could rewrite planetary science from the surface. Its water-related findings helped set the stage for later missions hunting signs of ancient life.",
       "Spirit and Opportunity together showed that two rovers could work on opposite sides of the same planet—Spirit in {{gusevCrater}}, Opportunity in Meridiani—each rewriting what we thought Mars was like.",
       "Engineers learned to drive farther, survive dustier seasons, and stretch hardware years beyond warranty—lessons Curiosity and Perseverance use today.",
+      "Opportunity’s driving record stood for years—28.06 miles (45.16 km). On October 11, 2026, its successor Perseverance finally passed that mark, reaching 28.10 miles (45.22 km) and setting a new off-world distance record.",
       "All of Opportunity’s data remain in NASA archives for new questions, classroom projects, and future explorers.",
     ],
     image: {
@@ -234,7 +241,7 @@ const sections = [
     },
     reflectionPrompt:
       "If you could send one scientific instrument to Mars, what would you want to discover?",
-    sources: [{ code: "001" }, { code: "002" }, { code: "003" }, { code: "004" }],
+    sources: [{ code: "001" }, { code: "002" }, { code: "003" }, { code: "004" }, { code: "005" }],
   },
 ];
 

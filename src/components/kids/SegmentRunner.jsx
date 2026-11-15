@@ -12,6 +12,7 @@ import { useKidsVoice } from "@/hooks/useKidsVoice";
 import { useKidsProgress } from "@/context/KidsProgressContext";
 import { useDeepDive } from "@/components/deepdive/DeepDiveContext";
 import { MODEL_URL } from "@/components/deepdive/RoverModel";
+import { INGENUITY_MODEL_URL } from "@/components/deepdive/IngenuityArchiveModel";
 import { useGLTF } from "@react-three/drei";
 import { t } from "@/data/kids/text";
 
@@ -285,19 +286,20 @@ export default function SegmentRunner({ machine, onExit }) {
       : null;
 
   const isOpp = machine.id === "opportunity";
+  const isGinny = machine.id === "ingenuity";
   const showReadMore =
-    isOpp && (phase === "lines" || phase === "follow" || phase === "question");
+    (isOpp || isGinny) && (phase === "lines" || phase === "follow" || phase === "question");
 
   const onReadMore = () => {
-    openDeepDive();
+    openDeepDive(isGinny ? "ingenuity" : "opportunity");
     setDeepDivePaused(true);
     voice.pausePlayback();
   };
 
   useEffect(() => {
     if (!showReadMore) return;
-    useGLTF.preload(MODEL_URL);
-  }, [showReadMore]);
+    useGLTF.preload(isGinny ? INGENUITY_MODEL_URL : MODEL_URL);
+  }, [showReadMore, isGinny]);
 
   const Character = machine.id === "ingenuity" ? Ingenuity : Opportunity;
   const hasMiniGame = machine.id === "opportunity" || machine.id === "ingenuity";
